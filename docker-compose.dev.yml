@@ -1,0 +1,22 @@
+version: "3.8"
+
+# Development profile: uses H2 in-memory database instead of PostgreSQL.
+# Run with: docker compose -f docker-compose.dev.yml up
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=local
+      - TUTORIALS_DIR=/tutorials
+    volumes:
+      - ${TUTORIALS_PATH:-./tutorials}:/tutorials:ro
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend

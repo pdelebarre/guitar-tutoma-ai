@@ -1,0 +1,166 @@
+/* ===== Preference Panel ===== */
+
+.preference-panel {
+  width: 100%;
+}
+
+.preference-panel__title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--color-text);
+}
+
+/* ===== Controls Layout ===== */
+
+.preference-panel__controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+/* ===== Difficulty Selector ===== */
+
+.preference-panel__field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.preference-panel__label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* ===== Favorite Button (Star) ===== */
+
+.preference-panel__favorite-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  font-size: var(--text-sm);
+  font-family: inherit;
+  font-weight: 500;
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  transition: background-color var(--transition-fast),
+    color var(--transition-fast), border-color var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.preference-panel__favorite-btn:hover {
+  background-color: var(--color-toggle-bg);
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+  transform: translateY(-1px);
+}
+
+.preference-panel__favorite-btn:active {
+  transform: scale(0.95);
+}
+
+.preference-panel__favorite-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.preference-panel__favorite-btn--active {
+  background-color: var(--color-warning-soft);
+  border-color: var(--color-warning);
+  color: var(--color-warning);
+}
+
+.preference-panel__favorite-btn--active:hover {
+  background-color: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+/* ===== Status Indicator ===== */
+
+.preference-panel__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  min-width: 70px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.preference-panel__status--saving,
+.preference-panel__status--saved {
+  opacity: 1;
+}
+
+.preference-panel__status--saved {
+  color: var(--color-success);
+}
+
+/* ── Spinner ────────────────────────────────────────────── */
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.preference-panel__spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-border);
+  border-top-color: var(--color-accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ===== Loading & Error States ===== */
+
+.preference-panel__loading {
+  padding: 1rem;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.preference-panel__error {
+  padding: 0.75rem 1rem;
+  font-size: var(--text-xs);
+  color: var(--color-danger);
+  background-color: var(--color-danger-soft);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 768px) {
+  .preference-panel__title {
+    font-size: var(--text-sm);
+  }
+
+  .preference-panel__controls {
+    gap: 1rem;
+  }
+
+  .preference-panel__label {
+    font-size: var(--text-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .preference-panel__controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}

@@ -1,0 +1,8 @@
+tutorials:
+  directory: ${TUTORIALS_DIR:./tutorials}
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
