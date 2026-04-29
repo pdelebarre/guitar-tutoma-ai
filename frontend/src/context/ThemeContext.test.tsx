@@ -15,7 +15,7 @@ function ThemeConsumer() {
 
 describe('ThemeContext', () => {
   beforeEach(() => {
-    localStorage.clear();
+    window.localStorage.clear();
     document.documentElement.removeAttribute('data-theme');
   });
 

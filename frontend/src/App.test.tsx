@@ -16,7 +16,7 @@ function renderApp(initialRoute = '/') {
 
 describe('App', () => {
   beforeEach(() => {
-    localStorage.clear();
+    window.localStorage.clear();
     document.documentElement.removeAttribute('data-theme');
   });
 
@@ -56,8 +56,10 @@ describe('App', () => {
 
   it('renders TutorialDetail at /tutorials/:id', () => {
     renderApp('/tutorials/test-song');
-    expect(screen.getByText('← Back to Library')).toBeInTheDocument();
-    expect(screen.getByText('Loading tutorial…')).toBeInTheDocument();
+    // "Library" appears in both nav link and breadcrumb
+    const libraryLinks = screen.getAllByText('Library');
+    expect(libraryLinks.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Loading…')).toBeInTheDocument();
   });
 
   it('renders PlaylistManager placeholder at /playlists', () => {

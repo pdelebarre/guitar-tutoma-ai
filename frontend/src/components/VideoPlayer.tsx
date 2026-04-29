@@ -20,7 +20,11 @@ export default function VideoPlayer({ tutorialId, hasSubtitle }: VideoPlayerProp
             default
           />
         )}
-        Your browser does not support the video element.
+        {/* Fallback content shown if video cannot load */}
+        <div className="video-player__fallback">
+          <span className="video-player__fallback-icon" aria-hidden="true">🎬</span>
+          <p className="video-player__fallback-text">No video available</p>
+        </div>
       </video>
     </div>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   getComments,
   createComment,
@@ -8,6 +8,8 @@ import {
 } from '../services/api';
 import type { Comment } from '../types';
 import './CommentPanel.css';
+
+const MAX_COMMENT_LENGTH = 500;
 
 interface CommentPanelProps {
   tutorialId: string;
@@ -46,6 +48,45 @@ function getAvatarColor(id: number): string {
   return colors[id % colors.length];
 }
 
+// ─── Confirmation Dialog ────────────────────────────────────────────────
+
+interface ConfirmDialogProps {
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+function ConfirmDialog({ message, onConfirm, onCancel }: ConfirmDialogProps) {
+  return (
+    <div className="comment-panel__confirm-overlay" role="dialog" aria-modal="true" aria-label="Confirm deletion">
+      <div className="comment-panel__confirm-dialog">
+        <p className="comment-panel__confirm-message">{message}</p>
+        <div className="comment-panel__confirm-actions">
+          <button className="btn btn--danger" onClick={onConfirm} type="button">
+            Delete
+          </button>
+          <button className="btn" onClick={onCancel} type="button">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Auto-resize textarea hook ──────────────────────────────────────────
+
+function useAutoResize(ref: React.RefObject<HTMLTextAreaElement | null>, value: string) {
+  useEffect(() => {
+    const textarea = ref.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+  }, [ref, value]);
+}
+
+// ─── Main Component ─────────────────────────────────────────────────────
+
 export default function CommentPanel({ tutorialId }: CommentPanelProps) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +96,12 @@ export default function CommentPanel({ tutorialId }: CommentPanelProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editText, setEditText] = useState('');
   const [editError, setEditError] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useAutoResize(textareaRef, newText);
+  useAutoResize(editTextareaRef, editText);
 
   const fetchComments = useCallback(async () => {
     try {
@@ -95,6 +142,11 @@ export default function CommentPanel({ tutorialId }: CommentPanelProps) {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCancelAdd = () => {
+    setNewText('');
+    setError(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -141,10 +193,14 @@ export default function CommentPanel({ tutorialId }: CommentPanelProps) {
     }
   };
 
-  const handleDelete = async (commentId: number) => {
-    if (!window.confirm('Are you sure you want to delete this comment?')) {
-      return;
-    }
+  const handleDeleteRequest = (commentId: number) => {
+    setConfirmDeleteId(commentId);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (confirmDeleteId === null) return;
+    const commentId = confirmDeleteId;
+    setConfirmDeleteId(null);
 
     try {
       await deleteComment(tutorialId, commentId);
@@ -154,6 +210,10 @@ export default function CommentPanel({ tutorialId }: CommentPanelProps) {
     }
   };
 
+  const handleCancelDelete = () => {
+    setConfirmDeleteId(null);
+  };
+
   return (
     <div className="comment-panel">
       <h3 className="comment-panel__title">Comments</h3>
@@ -161,11 +221,14 @@ export default function CommentPanel({ tutorialId }: CommentPanelProps) {
       {/* Add comment form */}
       <div className="comment-panel__form">
         <textarea
+          ref={textareaRef}
           className={`comment-panel__textarea${error ? ' comment-panel__textarea--error' : ''}`}
           placeholder="Add a comment…"
           value={newText}
           onChange={(e) => {
-            setNewText(e.target.value);
+            if (e.target.value.length <= MAX_COMMENT_LENGTH) {
+              setNewText(e.target.value);
+            }
             if (error) setError(null);
           }}
           onKeyDown={handleKeyDown}
@@ -173,19 +236,35 @@ export default function CommentPanel({ tutorialId }: CommentPanelProps) {
           aria-label="New comment text"
         />
         <div className="comment-panel__form-footer">
-          {error && (
-            <p className="comment-panel__error" role="alert">
-              {error}
-            </p>
-          )}
-          <button
-            className="btn btn--primary"
-            onClick={handleAdd}
-            disabled={submitting || !newText.trim()}
-            type="button"
-          >
-            {submitting ? 'Adding…' : 'Add Comment'}
-          </button>
+          <div className="comment-panel__form-footer-left">
+            {error && (
+              <p className="comment-panel__error" role="alert">
+                {error}
+              </p>
+            )}
+          </div>
+          <div className="comment-panel__form-footer-right">
+            <span className="comment-panel__char-count">
+              {newText.length}/{MAX_COMMENT_LENGTH}
+            </span>
+            {newText.trim() && (
+              <button
+                className="btn"
+                onClick={handleCancelAdd}
+                type="button"
+              >
+                Cancel
+              </button>
+            )}
+            <button
+              className="btn btn--primary"
+              onClick={handleAdd}
+              disabled={submitting || !newText.trim()}
+              type="button"
+            >
+              {submitting ? 'Adding…' : 'Add Comment'}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -203,20 +282,28 @@ export default function CommentPanel({ tutorialId }: CommentPanelProps) {
               {editingId === comment.id ? (
                 <div className="comment-panel__edit-form">
                   <textarea
+                    ref={editTextareaRef}
                     className={`comment-panel__textarea comment-panel__textarea--edit${editError ? ' comment-panel__textarea--error' : ''}`}
                     value={editText}
                     onChange={(e) => {
-                      setEditText(e.target.value);
+                      if (e.target.value.length <= MAX_COMMENT_LENGTH) {
+                        setEditText(e.target.value);
+                      }
                       if (editError) setEditError(null);
                     }}
                     rows={3}
                     aria-label="Edit comment text"
                   />
-                  {editError && (
-                    <p className="comment-panel__error" role="alert">
-                      {editError}
-                    </p>
-                  )}
+                  <div className="comment-panel__edit-meta">
+                    {editError && (
+                      <p className="comment-panel__error" role="alert">
+                        {editError}
+                      </p>
+                    )}
+                    <span className="comment-panel__char-count">
+                      {editText.length}/{MAX_COMMENT_LENGTH}
+                    </span>
+                  </div>
                   <div className="comment-panel__edit-actions">
                     <button
                       className="btn btn--primary"
@@ -246,7 +333,7 @@ export default function CommentPanel({ tutorialId }: CommentPanelProps) {
                     </span>
                     <div className="comment-panel__content">
                       <p className="comment-panel__text">{comment.text}</p>
-                      <span className="comment-panel__date">
+                      <span className="comment-panel__date" title={new Date(comment.createdAt).toLocaleString()}>
                         {formatDate(comment.createdAt)}
                         {comment.updatedAt && ' (edited)'}
                       </span>
@@ -267,7 +354,7 @@ export default function CommentPanel({ tutorialId }: CommentPanelProps) {
                     </button>
                     <button
                       className="comment-panel__action-btn comment-panel__action-btn--delete"
-                      onClick={() => handleDelete(comment.id)}
+                      onClick={() => handleDeleteRequest(comment.id)}
                       type="button"
                       aria-label="Delete comment"
                       title="Delete comment"
@@ -283,6 +370,15 @@ export default function CommentPanel({ tutorialId }: CommentPanelProps) {
             </li>
           ))}
         </ul>
+      )}
+
+      {/* Confirmation dialog */}
+      {confirmDeleteId !== null && (
+        <ConfirmDialog
+          message="Are you sure you want to delete this comment?"
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
+        />
       )}
     </div>
   );

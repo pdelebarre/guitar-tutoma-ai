@@ -406,12 +406,39 @@ function PlaylistDetailView({
   );
 }
 
+// ─── Confirmation Dialog ───────────────────────────────────────────────
+
+interface ConfirmDialogProps {
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+function ConfirmDialog({ message, onConfirm, onCancel }: ConfirmDialogProps) {
+  return (
+    <div className="playlist-manager__confirm-overlay" role="dialog" aria-modal="true" aria-label="Confirm deletion">
+      <div className="playlist-manager__confirm-dialog">
+        <p className="playlist-manager__confirm-message">{message}</p>
+        <div className="playlist-manager__confirm-actions">
+          <button className="btn btn--danger" onClick={onConfirm} type="button">
+            Delete
+          </button>
+          <button className="btn" onClick={onCancel} type="button">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main PlaylistManager Component ────────────────────────────────────
 
 export default function PlaylistManager() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   // Detail view state
   const [selectedPlaylist, setSelectedPlaylist] = useState<Playlist | null>(null);
@@ -450,16 +477,24 @@ export default function PlaylistManager() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this playlist?')) {
-      return;
-    }
+  const handleDeleteRequest = (id: number) => {
+    setConfirmDeleteId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (confirmDeleteId === null) return;
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
     try {
       await deletePlaylist(id);
       setPlaylists((prev) => prev.filter((p) => p.id !== id));
     } catch {
       setError('Failed to delete playlist.');
     }
+  };
+
+  const handleCancelDelete = () => {
+    setConfirmDeleteId(null);
   };
 
   const handleView = async (id: number) => {
@@ -572,8 +607,17 @@ export default function PlaylistManager() {
         <PlaylistListView
           playlists={playlists}
           onView={handleView}
-          onDelete={handleDelete}
+          onDelete={handleDeleteRequest}
           onCreate={handleCreate}
+        />
+      )}
+
+      {/* Confirmation dialog */}
+      {confirmDeleteId !== null && (
+        <ConfirmDialog
+          message="Are you sure you want to delete this playlist?"
+          onConfirm={handleConfirmDelete}
+          onCancel={handleCancelDelete}
         />
       )}
     </div>

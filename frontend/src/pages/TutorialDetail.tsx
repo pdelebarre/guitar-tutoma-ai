@@ -14,6 +14,31 @@ export default function TutorialDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [videoFloating, setVideoFloating] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>('video');
+
+  // Track which section is visible for the sticky sub-nav
+  useEffect(() => {
+    const sectionIds = ['section-video', 'section-tablature', 'section-comments', 'section-preferences'];
+
+    const handleScroll = () => {
+      const scrollPos = window.scrollY + 120; // offset for sticky nav height
+      let current = 'section-video';
+
+      for (const id of sectionIds) {
+        const el = document.getElementById(id);
+        if (el && el.offsetTop <= scrollPos) {
+          current = id;
+        }
+      }
+
+      setActiveSection(current);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [tutorial]);
 
   useEffect(() => {
     let cancelled = false;
@@ -92,6 +117,21 @@ export default function TutorialDetail() {
     ? `tutorial-detail__section tutorial-detail__tablature-section${videoFloating ? ' tutorial-detail__tablature-section--with-floating-video' : ''}`
     : '';
 
+  const sections = [
+    { id: 'section-video', label: 'Video' },
+    ...(tutorial.hasTablature ? [{ id: 'section-tablature' as const, label: 'Tablature' as const }] : []),
+    { id: 'section-comments', label: 'Comments' },
+    { id: 'section-preferences', label: 'Preferences' },
+  ];
+
+  function scrollToSection(sectionId: string) {
+    const el = document.getElementById(sectionId);
+    if (el) {
+      const offset = 100; // account for sticky nav height
+      window.scrollTo({ top: el.offsetTop - offset, behavior: 'smooth' });
+    }
+  }
+
   return (
     <div className="tutorial-detail page">
       <nav className="tutorial-detail__breadcrumbs">
@@ -102,8 +142,21 @@ export default function TutorialDetail() {
 
       <h2 className="tutorial-detail__title">{tutorial.name}</h2>
 
+      {/* Sticky sub-navigation */}
+      <nav className="tutorial-detail__sub-nav" aria-label="Section navigation">
+        {sections.map((s) => (
+          <button
+            key={s.id}
+            className={`tutorial-detail__sub-nav-link${activeSection === s.id ? ' tutorial-detail__sub-nav-link--active' : ''}`}
+            onClick={() => scrollToSection(s.id)}
+          >
+            {s.label}
+          </button>
+        ))}
+      </nav>
+
       <div className="tutorial-detail__content">
-        <section className={videoSectionClass}>
+        <section id="section-video" className={videoSectionClass}>
           <div className="tutorial-detail__section-header">
             <h3 className="tutorial-detail__section-title">Video</h3>
             {tutorial.hasSubtitle && (
@@ -124,7 +177,7 @@ export default function TutorialDetail() {
         </section>
 
         {tutorial.hasTablature && (
-          <section className={tablatureSectionClass}>
+          <section id="section-tablature" className={tablatureSectionClass}>
             <div className="tutorial-detail__section-header">
               <h3 className="tutorial-detail__section-title">Tablature</h3>
             </div>
@@ -135,11 +188,11 @@ export default function TutorialDetail() {
           </section>
         )}
 
-        <section className="tutorial-detail__section tutorial-detail__comments-section">
+        <section id="section-comments" className="tutorial-detail__section tutorial-detail__comments-section">
           <CommentPanel tutorialId={tutorial.id} />
         </section>
 
-        <section className="tutorial-detail__section tutorial-detail__preferences-section">
+        <section id="section-preferences" className="tutorial-detail__section tutorial-detail__preferences-section">
           <PreferencePanel tutorialId={tutorial.id} />
         </section>
       </div>

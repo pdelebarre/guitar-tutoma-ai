@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 public class VideoStreamingService {
@@ -30,12 +31,15 @@ public class VideoStreamingService {
     private static final long MAX_CHUNK_SIZE = 1024 * 1024; // 1MB
 
     private final TutorialScannerService tutorialScannerService;
+    private final SubtitleGenerationService subtitleGenerationService;
     private final Path tutorialsDirectory;
 
     public VideoStreamingService(
             TutorialScannerService tutorialScannerService,
+            SubtitleGenerationService subtitleGenerationService,
             @Value("${tutorials.directory}") String tutorialsDirectoryPath) {
         this.tutorialScannerService = tutorialScannerService;
+        this.subtitleGenerationService = subtitleGenerationService;
         this.tutorialsDirectory = Paths.get(tutorialsDirectoryPath);
     }
 

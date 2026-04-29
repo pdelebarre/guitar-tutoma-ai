@@ -59,10 +59,29 @@
   flex-wrap: wrap;
 }
 
+.comment-panel__form-footer-left {
+  flex: 1;
+  min-width: 0;
+}
+
+.comment-panel__form-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
 .comment-panel__error {
   font-size: var(--text-xs);
   color: var(--color-danger);
   flex: 1;
+}
+
+.comment-panel__char-count {
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+  user-select: none;
 }
 
 /* ===== Loading & Empty States ===== */
@@ -195,9 +214,59 @@
   flex-direction: column;
 }
 
+.comment-panel__edit-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.comment-panel__edit-meta .comment-panel__error {
+  flex: 1;
+}
+
 .comment-panel__edit-actions {
   display: flex;
   gap: 0.4rem;
+}
+
+/* ===== Confirmation Dialog ===== */
+
+.comment-panel__confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.4);
+  animation: fade-in var(--transition-fast) ease;
+}
+
+.comment-panel__confirm-dialog {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  max-width: 380px;
+  width: 90%;
+  box-shadow: var(--shadow-xl);
+  animation: scale-in var(--transition-fast) ease;
+}
+
+.comment-panel__confirm-message {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+
+.comment-panel__confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 /* ===== Responsive ===== */
@@ -230,12 +299,22 @@
     align-items: stretch;
   }
 
+  .comment-panel__form-footer-right {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
   .comment-panel__form-footer .btn {
-    width: 100%;
+    flex: 1;
+    min-width: 0;
   }
 
   .comment-panel__action-btn {
     width: 44px;
     height: 44px;
+  }
+
+  .comment-panel__confirm-dialog {
+    padding: 1.25rem;
   }
 }

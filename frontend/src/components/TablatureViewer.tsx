@@ -31,6 +31,7 @@ export default function TablatureViewer({
   hasTablature,
 }: TablatureViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState<number>(1);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editText, setEditText] = useState('');
@@ -452,233 +453,262 @@ export default function TablatureViewer({
             {loadError}
           </div>
         )}
-        {Array.from({ length: numPages }, (_, index) => {
-          const pageNumber = index + 1;
-          const pageAnnotations = annotations.filter(
-            (a) => a.pageNumber === pageNumber
-          );
+        {numPages > 0 && (
+          <div className="tablature-viewer__page-wrapper">
+            {(() => {
+              const pageNumber = currentPage;
+              const pageAnnotations = annotations.filter(
+                (a) => a.pageNumber === pageNumber
+              );
 
-          return (
-            <div key={pageNumber} className="tablature-viewer__page-container">
-              <Page
-                pageNumber={pageNumber}
-                width={undefined}
-                renderTextLayer={true}
-                renderAnnotationLayer={true}
-              />
-              <div
-                className={`tablature-viewer__overlay${activeTool !== 'text' ? ' tablature-viewer__overlay--drawing' : ''}`}
-                ref={(el) => {
-                  if (el) {
-                    overlayRefs.current.set(pageNumber, el);
-                  } else {
-                    overlayRefs.current.delete(pageNumber);
-                  }
-                }}
-                onMouseDown={(e) => handleMouseDown(e, pageNumber)}
-                onMouseMove={(e) => handleMouseMove(e, pageNumber)}
-                onMouseUp={(e) => handleMouseUp(e, pageNumber)}
-                onMouseLeave={(e) => {
-                  if (isDrawing && drawingPageRef.current === pageNumber) {
-                    handleMouseUp(e, pageNumber);
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-                aria-label={`Annotation overlay for page ${pageNumber}`}
-              >
-                {/* Render existing drawing annotations */}
-                {pageAnnotations
-                  .filter((a) => a.type !== 'text')
-                  .map((annotation) => {
-                    const strokePoints: StrokePoint[] = annotation.strokeData
-                      ? JSON.parse(annotation.strokeData)
-                      : [];
-                    return (
-                      <div
-                        key={annotation.id}
-                        className="tablature-viewer__drawing"
-                        style={{
-                          left: `${annotation.x}%`,
-                          top: `${annotation.y}%`,
-                          width: `${annotation.width}%`,
-                          height: `${annotation.height}%`,
-                        }}
-                      >
-                        <svg
-                          className="tablature-viewer__drawing-svg"
-                          viewBox={`0 0 100 100`}
-                          preserveAspectRatio="none"
-                        >
-                          {annotation.type === 'highlight' ? (
-                            strokePoints.map((_, i) => {
-                              if (i === 0) return null;
-                              const p1 = strokePoints[i - 1];
-                              const p2 = strokePoints[i];
-                              const relX1 = ((p1.x - annotation.x) / annotation.width) * 100;
-                              const relY1 = ((p1.y - annotation.y) / annotation.height) * 100;
-                              const relX2 = ((p2.x - annotation.x) / annotation.width) * 100;
-                              const relY2 = ((p2.y - annotation.y) / annotation.height) * 100;
-                              return (
-                                <line
-                                  key={i}
-                                  x1={relX1}
-                                  y1={relY1}
-                                  x2={relX2}
-                                  y2={relY2}
-                                  stroke={annotation.color || '#FFD700'}
-                                  strokeWidth="6"
-                                  strokeLinecap="round"
-                                  opacity="0.4"
-                                />
-                              );
-                            })
-                          ) : (
-                            strokePoints.map((_, i) => {
-                              if (i === 0) return null;
-                              const p1 = strokePoints[i - 1];
-                              const p2 = strokePoints[i];
-                              const relX1 = ((p1.x - annotation.x) / annotation.width) * 100;
-                              const relY1 = ((p1.y - annotation.y) / annotation.height) * 100;
-                              const relX2 = ((p2.x - annotation.x) / annotation.width) * 100;
-                              const relY2 = ((p2.y - annotation.y) / annotation.height) * 100;
-                              return (
-                                <line
-                                  key={i}
-                                  x1={relX1}
-                                  y1={relY1}
-                                  x2={relX2}
-                                  y2={relY2}
-                                  stroke={annotation.color || '#FFD700'}
-                                  strokeWidth={annotation.type === 'underline' ? '3' : '2'}
-                                  strokeLinecap="round"
-                                  opacity="0.85"
-                                />
-                              );
-                            })
-                          )}
-                        </svg>
-                        <button
-                          className="tablature-viewer__drawing-delete"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(annotation.id);
-                          }}
-                          aria-label="Delete drawing"
-                          title="Delete drawing"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    );
-                  })}
-
-                {/* Render current live stroke while drawing */}
-                {isDrawing && drawingPageRef.current === pageNumber && currentStroke.length > 1 && (
+              return (
+                <div key={pageNumber} className="tablature-viewer__page-container">
+                  <Page
+                    pageNumber={pageNumber}
+                    width={undefined}
+                    renderTextLayer={true}
+                    renderAnnotationLayer={true}
+                  />
                   <div
-                    className="tablature-viewer__drawing tablature-viewer__drawing--live"
-                    style={{
-                      left: `${Math.min(...currentStroke.map(p => p.x))}%`,
-                      top: `${Math.min(...currentStroke.map(p => p.y))}%`,
-                      width: `${Math.max(...currentStroke.map(p => p.x)) - Math.min(...currentStroke.map(p => p.x)) || 1}%`,
-                      height: `${Math.max(...currentStroke.map(p => p.y)) - Math.min(...currentStroke.map(p => p.y)) || 1}%`,
+                    className={`tablature-viewer__overlay${activeTool !== 'text' ? ' tablature-viewer__overlay--drawing' : ''}`}
+                    ref={(el) => {
+                      if (el) {
+                        overlayRefs.current.set(pageNumber, el);
+                      } else {
+                        overlayRefs.current.delete(pageNumber);
+                      }
                     }}
+                    onMouseDown={(e) => handleMouseDown(e, pageNumber)}
+                    onMouseMove={(e) => handleMouseMove(e, pageNumber)}
+                    onMouseUp={(e) => handleMouseUp(e, pageNumber)}
+                    onMouseLeave={(e) => {
+                      if (isDrawing && drawingPageRef.current === pageNumber) {
+                        handleMouseUp(e, pageNumber);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Annotation overlay for page ${pageNumber}`}
                   >
-                    <svg
-                      className="tablature-viewer__drawing-svg"
-                      viewBox="0 0 100 100"
-                      preserveAspectRatio="none"
-                    >
-                      {currentStroke.map((_, i) => {
-                        if (i === 0) return null;
-                        const p1 = currentStroke[i - 1];
-                        const p2 = currentStroke[i];
-                        const minX = Math.min(...currentStroke.map(p => p.x));
-                        const minY = Math.min(...currentStroke.map(p => p.y));
-                        const w = Math.max(...currentStroke.map(p => p.x)) - minX || 1;
-                        const h = Math.max(...currentStroke.map(p => p.y)) - minY || 1;
-                        const relX1 = ((p1.x - minX) / w) * 100;
-                        const relY1 = ((p1.y - minY) / h) * 100;
-                        const relX2 = ((p2.x - minX) / w) * 100;
-                        const relY2 = ((p2.y - minY) / h) * 100;
+                    {/* Render existing drawing annotations */}
+                    {pageAnnotations
+                      .filter((a) => a.type !== 'text')
+                      .map((annotation) => {
+                        const strokePoints: StrokePoint[] = annotation.strokeData
+                          ? JSON.parse(annotation.strokeData)
+                          : [];
                         return (
-                          <line
-                            key={i}
-                            x1={relX1}
-                            y1={relY1}
-                            x2={relX2}
-                            y2={relY2}
-                            stroke={activeColor}
-                            strokeWidth={activeTool === 'highlight' ? '6' : activeTool === 'underline' ? '3' : '2'}
-                            strokeLinecap="round"
-                            opacity={activeTool === 'highlight' ? '0.4' : '0.85'}
-                          />
-                        );
-                      })}
-                    </svg>
-                  </div>
-                )}
-
-                {/* Render existing text annotations */}
-                {pageAnnotations
-                  .filter((a) => a.type === 'text')
-                  .map((annotation) => (
-                    <div
-                      key={annotation.id}
-                      className="tablature-viewer__annotation"
-                      style={{
-                        left: `${annotation.x}%`,
-                        top: `${annotation.y}%`,
-                        width: `${annotation.width}%`,
-                        height: `${annotation.height}%`,
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAnnotationClick(annotation);
-                      }}
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`Annotation: ${annotation.content}`}
-                    >
-                      {editingId === annotation.id ? (
-                        <>
-                          <textarea
-                            className="tablature-viewer__edit-input"
-                            value={editText}
-                            onChange={(e) => setEditText(e.target.value)}
-                            onKeyDown={(e) => handleEditKeyDown(e, annotation)}
-                            onBlur={() => handleEditSave(annotation)}
-                            autoFocus
-                            aria-label="Edit annotation text"
-                          />
-                        </>
-                      ) : (
-                        <>
-                          <span className="tablature-viewer__annotation-content">
-                            {annotation.content}
-                          </span>
-                          <span className="tablature-viewer__annotation-actions">
+                          <div
+                            key={annotation.id}
+                            className="tablature-viewer__drawing"
+                            style={{
+                              left: `${annotation.x}%`,
+                              top: `${annotation.y}%`,
+                              width: `${annotation.width}%`,
+                              height: `${annotation.height}%`,
+                            }}
+                          >
+                            <svg
+                              className="tablature-viewer__drawing-svg"
+                              viewBox={`0 0 100 100`}
+                              preserveAspectRatio="none"
+                            >
+                              {annotation.type === 'highlight' ? (
+                                strokePoints.map((_, i) => {
+                                  if (i === 0) return null;
+                                  const p1 = strokePoints[i - 1];
+                                  const p2 = strokePoints[i];
+                                  const relX1 = ((p1.x - annotation.x) / annotation.width) * 100;
+                                  const relY1 = ((p1.y - annotation.y) / annotation.height) * 100;
+                                  const relX2 = ((p2.x - annotation.x) / annotation.width) * 100;
+                                  const relY2 = ((p2.y - annotation.y) / annotation.height) * 100;
+                                  return (
+                                    <line
+                                      key={i}
+                                      x1={relX1}
+                                      y1={relY1}
+                                      x2={relX2}
+                                      y2={relY2}
+                                      stroke={annotation.color || '#FFD700'}
+                                      strokeWidth="6"
+                                      strokeLinecap="round"
+                                      opacity="0.4"
+                                    />
+                                  );
+                                })
+                              ) : (
+                                strokePoints.map((_, i) => {
+                                  if (i === 0) return null;
+                                  const p1 = strokePoints[i - 1];
+                                  const p2 = strokePoints[i];
+                                  const relX1 = ((p1.x - annotation.x) / annotation.width) * 100;
+                                  const relY1 = ((p1.y - annotation.y) / annotation.height) * 100;
+                                  const relX2 = ((p2.x - annotation.x) / annotation.width) * 100;
+                                  const relY2 = ((p2.y - annotation.y) / annotation.height) * 100;
+                                  return (
+                                    <line
+                                      key={i}
+                                      x1={relX1}
+                                      y1={relY1}
+                                      x2={relX2}
+                                      y2={relY2}
+                                      stroke={annotation.color || '#FFD700'}
+                                      strokeWidth={annotation.type === 'underline' ? '3' : '2'}
+                                      strokeLinecap="round"
+                                      opacity="0.85"
+                                    />
+                                  );
+                                })
+                              )}
+                            </svg>
                             <button
-                              className="tablature-viewer__annotation-btn tablature-viewer__annotation-btn--delete"
+                              className="tablature-viewer__drawing-delete"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDelete(annotation.id);
                               }}
-                              aria-label={`Delete annotation: ${annotation.content}`}
-                              title="Delete annotation"
+                              aria-label="Delete drawing"
+                              title="Delete drawing"
                             >
                               ✕
                             </button>
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  ))}
-              </div>
-            </div>
-          );
-        })}
+                          </div>
+                        );
+                      })}
+
+                    {/* Render current live stroke while drawing */}
+                    {isDrawing && drawingPageRef.current === pageNumber && currentStroke.length > 1 && (
+                      <div
+                        className="tablature-viewer__drawing tablature-viewer__drawing--live"
+                        style={{
+                          left: `${Math.min(...currentStroke.map(p => p.x))}%`,
+                          top: `${Math.min(...currentStroke.map(p => p.y))}%`,
+                          width: `${Math.max(...currentStroke.map(p => p.x)) - Math.min(...currentStroke.map(p => p.x)) || 1}%`,
+                          height: `${Math.max(...currentStroke.map(p => p.y)) - Math.min(...currentStroke.map(p => p.y)) || 1}%`,
+                        }}
+                      >
+                        <svg
+                          className="tablature-viewer__drawing-svg"
+                          viewBox="0 0 100 100"
+                          preserveAspectRatio="none"
+                        >
+                          {currentStroke.map((_, i) => {
+                            if (i === 0) return null;
+                            const p1 = currentStroke[i - 1];
+                            const p2 = currentStroke[i];
+                            const minX = Math.min(...currentStroke.map(p => p.x));
+                            const minY = Math.min(...currentStroke.map(p => p.y));
+                            const w = Math.max(...currentStroke.map(p => p.x)) - minX || 1;
+                            const h = Math.max(...currentStroke.map(p => p.y)) - minY || 1;
+                            const relX1 = ((p1.x - minX) / w) * 100;
+                            const relY1 = ((p1.y - minY) / h) * 100;
+                            const relX2 = ((p2.x - minX) / w) * 100;
+                            const relY2 = ((p2.y - minY) / h) * 100;
+                            return (
+                              <line
+                                key={i}
+                                x1={relX1}
+                                y1={relY1}
+                                x2={relX2}
+                                y2={relY2}
+                                stroke={activeColor}
+                                strokeWidth={activeTool === 'highlight' ? '6' : activeTool === 'underline' ? '3' : '2'}
+                                strokeLinecap="round"
+                                opacity={activeTool === 'highlight' ? '0.4' : '0.85'}
+                              />
+                            );
+                          })}
+                        </svg>
+                      </div>
+                    )}
+
+                    {/* Render existing text annotations */}
+                    {pageAnnotations
+                      .filter((a) => a.type === 'text')
+                      .map((annotation) => (
+                        <div
+                          key={annotation.id}
+                          className="tablature-viewer__annotation"
+                          style={{
+                            left: `${annotation.x}%`,
+                            top: `${annotation.y}%`,
+                            width: `${annotation.width}%`,
+                            height: `${annotation.height}%`,
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAnnotationClick(annotation);
+                          }}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Annotation: ${annotation.content}`}
+                        >
+                          {editingId === annotation.id ? (
+                            <>
+                              <textarea
+                                className="tablature-viewer__edit-input"
+                                value={editText}
+                                onChange={(e) => setEditText(e.target.value)}
+                                onKeyDown={(e) => handleEditKeyDown(e, annotation)}
+                                onBlur={() => handleEditSave(annotation)}
+                                autoFocus
+                                aria-label="Edit annotation text"
+                              />
+                            </>
+                          ) : (
+                            <>
+                              <span className="tablature-viewer__annotation-content">
+                                {annotation.content}
+                              </span>
+                              <span className="tablature-viewer__annotation-actions">
+                                <button
+                                  className="tablature-viewer__annotation-btn tablature-viewer__annotation-btn--delete"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDelete(annotation.id);
+                                  }}
+                                  aria-label={`Delete annotation: ${annotation.content}`}
+                                  title="Delete annotation"
+                                >
+                                  ✕
+                                </button>
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
       </Document>
+
+      {/* Page Navigation */}
+      {numPages > 1 && (
+        <nav className="tablature-viewer__page-nav" aria-label="Page navigation">
+          <button
+            className="tablature-viewer__page-nav-btn"
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={currentPage <= 1}
+            aria-label="Previous page"
+          >
+            ‹ Prev
+          </button>
+          <span className="tablature-viewer__page-nav-info">
+            Page {currentPage} of {numPages}
+          </span>
+          <button
+            className="tablature-viewer__page-nav-btn"
+            onClick={() => setCurrentPage((p) => Math.min(numPages, p + 1))}
+            disabled={currentPage >= numPages}
+            aria-label="Next page"
+          >
+            Next ›
+          </button>
+        </nav>
+      )}
     </div>
   );
 }

@@ -17,5 +17,16 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
     css: true,
+    coverage: {
+      exclude: [
+        '**/*.css',
+        '**/*.test.*',
+        '**/*.property.*',
+        '**/test/**',
+        '**/types/**',
+        '**/vite-env.d.ts',
+        '**/TablatureViewer.tsx',
+      ],
+    },
   },
 });

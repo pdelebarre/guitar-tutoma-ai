@@ -80,7 +80,9 @@ describe('SongLibrary', () => {
     mockListTutorials.mockReturnValue(new Promise(() => {})); // never resolves
     renderSongLibrary();
 
-    expect(screen.getByText('Loading tutorials…')).toBeInTheDocument();
+    // Loading state shows skeleton rows
+    expect(screen.getByText('Song Library')).toBeInTheDocument();
+    expect(document.querySelector('.song-library__skeleton')).toBeInTheDocument();
   });
 
   it('shows empty state when no tutorials are available', async () => {
@@ -92,16 +94,20 @@ describe('SongLibrary', () => {
     });
   });
 
-  it('renders tutorial names in the table', async () => {
+  it('renders tutorial names in the table and cards', async () => {
     mockListTutorials.mockResolvedValue(sampleTutorials);
     mockGetPreferences.mockRejectedValue(new Error('not found'));
     renderSongLibrary();
 
     await waitFor(() => {
-      expect(screen.getByText('Stairway to Heaven')).toBeInTheDocument();
+      // Names appear in both table and card views
+      const stairway = screen.getAllByText('Stairway to Heaven');
+      expect(stairway.length).toBe(2);
     });
-    expect(screen.getByText('Smoke on the Water')).toBeInTheDocument();
-    expect(screen.getByText('Wonderwall')).toBeInTheDocument();
+    const smoke = screen.getAllByText('Smoke on the Water');
+    expect(smoke.length).toBe(2);
+    const wonderwall = screen.getAllByText('Wonderwall');
+    expect(wonderwall.length).toBe(2);
   });
 
   it('renders subtitle availability icons correctly', async () => {
@@ -110,12 +116,15 @@ describe('SongLibrary', () => {
     renderSongLibrary();
 
     await waitFor(() => {
-      expect(screen.getByText('Stairway to Heaven')).toBeInTheDocument();
+      const stairway = screen.getAllByText('Stairway to Heaven');
+      expect(stairway.length).toBe(2);
     });
 
-    const subtitleBadges = screen.getAllByLabelText(/subtitles/i);
-    // Sorted alphabetically: Smoke (no subs), Stairway (has subs), Wonderwall (has subs)
+    // Table view badges have aria-labels; card view badges do not
+    // So we get 3 from table view: Smoke (No subtitles), Stairway (Subtitles available), Wonderwall (Subtitles available)
+    const subtitleBadges = screen.getAllByLabelText(/subtitles|no subtitles/i);
     expect(subtitleBadges).toHaveLength(3);
+    // Table: Smoke (no subs), Stairway (has subs), Wonderwall (has subs)
     expect(subtitleBadges[0]).toHaveTextContent('✗');
     expect(subtitleBadges[1]).toHaveTextContent('✓');
     expect(subtitleBadges[2]).toHaveTextContent('✓');
@@ -127,11 +136,15 @@ describe('SongLibrary', () => {
     renderSongLibrary();
 
     await waitFor(() => {
-      expect(screen.getByText('Stairway to Heaven')).toBeInTheDocument();
+      const stairway = screen.getAllByText('Stairway to Heaven');
+      expect(stairway.length).toBe(2);
     });
 
-    const tabBadges = screen.getAllByLabelText(/tablature/i);
+    // Table view badges have aria-labels; card view badges do not
+    // So we get 3 from table view: Smoke (Tablature available), Stairway (Tablature available), Wonderwall (No tablature)
+    const tabBadges = screen.getAllByLabelText(/tablature|no tablature/i);
     expect(tabBadges).toHaveLength(3);
+    // Table: Smoke (has tabs), Stairway (has tabs), Wonderwall (no tabs)
     expect(tabBadges[0]).toHaveTextContent('✓');
     expect(tabBadges[1]).toHaveTextContent('✓');
     expect(tabBadges[2]).toHaveTextContent('✗');
@@ -163,11 +176,13 @@ describe('SongLibrary', () => {
     renderSongLibrary();
 
     await waitFor(() => {
-      expect(screen.getByText('Stairway to Heaven')).toBeInTheDocument();
+      const stairway = screen.getAllByText('Stairway to Heaven');
+      expect(stairway.length).toBe(2);
     });
 
-    const row = screen.getByRole('link', { name: /stairway to heaven/i });
-    await user.click(row);
+    // Both table row and card have role="link", click the first one
+    const rows = screen.getAllByRole('link', { name: /stairway to heaven/i });
+    await user.click(rows[0]);
 
     expect(mockNavigate).toHaveBeenCalledWith('/tutorials/stairway-to-heaven');
   });
@@ -198,8 +213,12 @@ describe('SongLibrary', () => {
     await waitFor(() => {
       expect(screen.getByText('Name')).toBeInTheDocument();
     });
-    expect(screen.getByText('Subtitles')).toBeInTheDocument();
-    expect(screen.getByText('Tablature')).toBeInTheDocument();
+    // "Subtitles" appears in table header and card meta text
+    const subtitles = screen.getAllByText('Subtitles');
+    expect(subtitles.length).toBeGreaterThanOrEqual(1);
+    // "Tablature" appears in table header and card meta text
+    const tablature = screen.getAllByText('Tablature');
+    expect(tablature.length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Level')).toBeInTheDocument();
   });
 });

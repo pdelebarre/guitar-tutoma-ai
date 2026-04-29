@@ -516,6 +516,43 @@
   margin-top: 0.5rem;
 }
 
+/* ===== Confirmation Dialog ===== */
+
+.playlist-manager__confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.4);
+  animation: fade-in var(--transition-fast) ease;
+}
+
+.playlist-manager__confirm-dialog {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  max-width: 380px;
+  width: 90%;
+  box-shadow: var(--shadow-xl);
+  animation: scale-in var(--transition-fast) ease;
+}
+
+.playlist-manager__confirm-message {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+
+.playlist-manager__confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 /* ===== Responsive ===== */
 
 @media (max-width: 768px) {
