@@ -84,7 +84,9 @@ public class TutorialScannerService {
 
             String dirName = directory.getFileName().toString();
             String displayName = toDisplayName(dirName);
-            boolean hasSubtitle = hasFileWithExtension(directory, ".srt");
+            // Subtitles can be auto-generated on-demand via Faster-Whisper,
+            // so we always report hasSubtitle=true when a video file exists.
+            boolean hasSubtitle = true;
             boolean hasTablature = hasFileWithExtension(directory, ".pdf");
 
             return Optional.of(new TutorialInfo(dirName, displayName, videoFilename, hasSubtitle, hasTablature));

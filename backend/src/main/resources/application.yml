@@ -1,6 +1,12 @@
 tutorials:
   directory: ${TUTORIALS_DIR:./tutorials}
 
+subtitles:
+  # Faster-Whisper model size: tiny, base, small, medium, large-v3
+  model-size: ${SUBTITLE_MODEL_SIZE:base}
+  # Language code for transcription
+  language: ${SUBTITLE_LANGUAGE:en}
+
 spring:
   jpa:
     hibernate:

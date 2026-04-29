@@ -3,6 +3,8 @@ package com.guitartutorial.service;
 import com.guitartutorial.dto.TutorialInfo;
 import com.guitartutorial.exception.ResourceNotFoundException;
 import com.guitartutorial.exception.TutorialNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -27,6 +29,8 @@ import java.util.concurrent.CompletableFuture;
 
 @Service
 public class VideoStreamingService {
+
+    private static final Logger log = LoggerFactory.getLogger(VideoStreamingService.class);
 
     private static final long MAX_CHUNK_SIZE = 1024 * 1024; // 1MB
 
@@ -82,26 +86,41 @@ public class VideoStreamingService {
     /**
      * Returns the subtitle file content for a tutorial, converted from SRT to WebVTT format.
      * Browsers require WebVTT (.vtt) format for the HTML5 <track> element.
+     * <p>
+     * If no SRT file exists yet, this method triggers asynchronous subtitle generation
+     * via Faster-Whisper and returns empty so the video can start playing without subtitles.
+     * Once generation completes, subsequent requests will serve the generated subtitles.
      *
      * @param tutorialId the tutorial directory name
      * @return an Optional containing the VTT Resource if available, or empty otherwise
      */
     public Optional<Resource> getSubtitleFile(String tutorialId) {
-        tutorialScannerService.getTutorial(tutorialId)
+        TutorialInfo tutorial = tutorialScannerService.getTutorial(tutorialId)
                 .orElseThrow(() -> new TutorialNotFoundException(tutorialId));
 
         Path tutorialDir = tutorialsDirectory.resolve(tutorialId);
         try {
-            return Files.list(tutorialDir)
+            Optional<Path> srtFile = Files.list(tutorialDir)
                     .filter(p -> Files.isRegularFile(p) && p.getFileName().toString().toLowerCase().endsWith(".srt"))
-                    .findFirst()
-                    .map(srtPath -> {
-                        try {
-                            return (Resource) new SrtToVttResource(srtPath);
-                        } catch (IOException e) {
-                            return null;
-                        }
-                    });
+                    .findFirst();
+
+            if (srtFile.isPresent()) {
+                return srtFile.map(srtPath -> {
+                    try {
+                        return (Resource) new SrtToVttResource(srtPath);
+                    } catch (IOException e) {
+                        return null;
+                    }
+                });
+            }
+
+            // No SRT file found — trigger asynchronous generation via Faster-Whisper
+            CompletableFuture<Void> generation = subtitleGenerationService.ensureSubtitles(tutorial);
+            if (!generation.isDone()) {
+                log.info("Subtitle generation triggered for tutorial '{}'; subtitles will appear once ready", tutorialId);
+            }
+
+            return Optional.empty();
         } catch (IOException e) {
             return Optional.empty();
         }
