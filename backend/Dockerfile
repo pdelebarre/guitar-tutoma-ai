@@ -16,7 +16,7 @@ FROM eclipse-temurin:25-jre-alpine
 
 WORKDIR /app
 
-# Install Python 3, pip, and build dependencies for faster-whisper
+# Install Python 3, pip, and build dependencies for faster-whisper and chromadb
 RUN apk add --no-cache \
     python3 \
     py3-pip \
@@ -29,13 +29,13 @@ RUN apk add --no-cache \
     linux-headers \
     python3-dev \
     && python3 -m venv /opt/venv \
-    && /opt/venv/bin/pip install --no-cache-dir faster-whisper \
+    && /opt/venv/bin/pip install --no-cache-dir faster-whisper chromadb \
     && rm -rf /root/.cache/pip
 
 # Copy the built JAR from the build stage
 COPY --from=build /app/target/*.jar app.jar
 
-# Copy the subtitle generation script
+# Copy the Python scripts
 COPY scripts/ ./scripts/
 
 # Make sure the venv python is used

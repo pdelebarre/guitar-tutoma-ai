@@ -1,0 +1,117 @@
+.user-preferences-page {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: var(--bg-card, #fff);
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.user-preferences-page h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.5rem;
+  color: var(--text-primary, #1a1a2e);
+}
+
+.user-preferences-page__subtitle {
+  margin: 0 0 1.5rem;
+  color: var(--text-secondary, #666);
+  font-size: 0.9rem;
+}
+
+.user-preferences-page__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.user-preferences-page__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.user-preferences-page__field label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-primary, #1a1a2e);
+}
+
+.user-preferences-page__field select {
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: var(--bg-input, #f8f9fa);
+  color: var(--text-primary, #1a1a2e);
+  cursor: pointer;
+}
+
+.user-preferences-page__field select:focus {
+  outline: none;
+  border-color: var(--accent, #4361ee);
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.12);
+}
+
+.user-preferences-page__actions {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.user-preferences-page__actions .btn {
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s, opacity 0.2s;
+}
+
+.user-preferences-page__actions .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.user-preferences-page__actions .btn--primary {
+  background: var(--accent, #4361ee);
+  color: #fff;
+}
+
+.user-preferences-page__actions .btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover, #3651d4);
+}
+
+.user-preferences-page__actions .btn--secondary {
+  background: var(--bg-input, #f0f0f0);
+  color: var(--text-primary, #1a1a2e);
+}
+
+.user-preferences-page__actions .btn--secondary:hover:not(:disabled) {
+  background: var(--border-color, #e0e0e0);
+}
+
+.user-preferences-page__success {
+  padding: 0.65rem 0.85rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  color: #16a34a;
+  font-size: 0.85rem;
+}
+
+.user-preferences-page__error {
+  padding: 0.65rem 0.85rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 0.85rem;
+}
+
+.user-preferences-page__loading {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--text-secondary, #666);
+}

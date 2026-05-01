@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { getTutorial } from '../services/api';
+import { getTutorial, uploadPdf, getTutorialMetadata } from '../services/api';
 import VideoPlayer from '../components/VideoPlayer';
 import TablatureViewer from '../components/TablatureViewer';
 import CommentPanel from '../components/CommentPanel';
 import PreferencePanel from '../components/PreferencePanel';
-import type { Tutorial } from '../types';
+import type { Tutorial, TutorialMetadata } from '../types';
 import './TutorialDetail.css';
 
 export default function TutorialDetail() {
@@ -16,9 +16,23 @@ export default function TutorialDetail() {
   const [videoFloating, setVideoFloating] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('video');
 
+  // PDF upload state
+  const [metadata, setMetadata] = useState<TutorialMetadata | null>(null);
+  const [metadataLoading, setMetadataLoading] = useState(false);
+  const [metadataError, setMetadataError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Track which section is visible for the sticky sub-nav
   useEffect(() => {
-    const sectionIds = ['section-video', 'section-tablature', 'section-comments', 'section-preferences'];
+    const sectionIds = [
+      'section-video',
+      'section-tablature',
+      'section-metadata',
+      'section-comments',
+      'section-preferences',
+    ];
 
     const handleScroll = () => {
       const scrollPos = window.scrollY + 120; // offset for sticky nav height
@@ -75,6 +89,65 @@ export default function TutorialDetail() {
     };
   }, [id]);
 
+  // Fetch existing metadata when tutorial loads
+  useEffect(() => {
+    if (!id) return;
+
+    let cancelled = false;
+
+    async function fetchMetadata() {
+      try {
+        setMetadataLoading(true);
+        setMetadataError(null);
+        const data = await getTutorialMetadata(id!);
+        if (!cancelled) {
+          setMetadata(data);
+        }
+      } catch {
+        // Metadata may not exist yet — that's fine
+        if (!cancelled) {
+          setMetadata(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setMetadataLoading(false);
+        }
+      }
+    }
+
+    fetchMetadata();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      setUploadError('Please select a PDF file.');
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setUploadError(null);
+      const result = await uploadPdf(id, file);
+      setMetadata(result);
+    } catch (err) {
+      setUploadError('Failed to upload PDF. Please try again.');
+      console.error('PDF upload failed:', err);
+    } finally {
+      setUploading(false);
+      // Reset file input so the same file can be re-selected
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  }
+
   if (loading) {
     return (
       <div className="tutorial-detail page">
@@ -120,6 +193,7 @@ export default function TutorialDetail() {
   const sections = [
     { id: 'section-video', label: 'Video' },
     ...(tutorial.hasTablature ? [{ id: 'section-tablature' as const, label: 'Tablature' as const }] : []),
+    { id: 'section-metadata', label: 'Metadata' },
     { id: 'section-comments', label: 'Comments' },
     { id: 'section-preferences', label: 'Preferences' },
   ];
@@ -187,6 +261,109 @@ export default function TutorialDetail() {
             />
           </section>
         )}
+
+        {/* Metadata section: PDF upload + extracted metadata display */}
+        <section id="section-metadata" className="tutorial-detail__section tutorial-detail__metadata-section">
+          <div className="tutorial-detail__section-header">
+            <h3 className="tutorial-detail__section-title">PDF Metadata</h3>
+          </div>
+
+          {/* PDF Upload */}
+          <div className="tutorial-detail__pdf-upload">
+            <p className="tutorial-detail__pdf-upload-description">
+              Upload a PDF tutorial (tablature, lesson notes, etc.) to automatically extract structured metadata
+              using Mistral AI.
+            </p>
+            <div className="tutorial-detail__pdf-upload-controls">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                onChange={handleFileUpload}
+                disabled={uploading}
+                className="tutorial-detail__pdf-input"
+                id="pdf-upload-input"
+              />
+              <label htmlFor="pdf-upload-input" className="btn btn--secondary">
+                {uploading ? 'Uploading & Extracting…' : 'Choose PDF'}
+              </label>
+            </div>
+            {uploadError && (
+              <p className="tutorial-detail__upload-error" role="alert">
+                ⚠️ {uploadError}
+              </p>
+            )}
+          </div>
+
+          {/* Extracted Metadata Display */}
+          <div className="tutorial-detail__metadata-display">
+            {metadataLoading && (
+              <p className="tutorial-detail__metadata-loading">Loading metadata…</p>
+            )}
+            {metadataError && (
+              <p className="tutorial-detail__metadata-error" role="alert">
+                ⚠️ {metadataError}
+              </p>
+            )}
+            {!metadataLoading && !metadataError && metadata && (
+              <table className="tutorial-detail__metadata-table">
+                <tbody>
+                  {metadata.title && (
+                    <tr>
+                      <td className="tutorial-detail__metadata-label">Title</td>
+                      <td className="tutorial-detail__metadata-value">{metadata.title}</td>
+                    </tr>
+                  )}
+                  {metadata.tuning && (
+                    <tr>
+                      <td className="tutorial-detail__metadata-label">Tuning</td>
+                      <td className="tutorial-detail__metadata-value">{metadata.tuning}</td>
+                    </tr>
+                  )}
+                  {metadata.musicalKey && (
+                    <tr>
+                      <td className="tutorial-detail__metadata-label">Key</td>
+                      <td className="tutorial-detail__metadata-value">{metadata.musicalKey}</td>
+                    </tr>
+                  )}
+                  {metadata.difficulty && (
+                    <tr>
+                      <td className="tutorial-detail__metadata-label">Difficulty</td>
+                      <td className="tutorial-detail__metadata-value">
+                        <span className={`level-badge level-${metadata.difficulty.toLowerCase()}`}>
+                          {metadata.difficulty}
+                        </span>
+                      </td>
+                    </tr>
+                  )}
+                  {metadata.techniques && (
+                    <tr>
+                      <td className="tutorial-detail__metadata-label">Techniques</td>
+                      <td className="tutorial-detail__metadata-value">
+                        {metadata.techniques.split(',').map((t, i) => (
+                          <span key={i} className="tutorial-detail__technique-tag">
+                            {t.trim()}
+                          </span>
+                        ))}
+                      </td>
+                    </tr>
+                  )}
+                  {metadata.genre && (
+                    <tr>
+                      <td className="tutorial-detail__metadata-label">Genre</td>
+                      <td className="tutorial-detail__metadata-value">{metadata.genre}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+            {!metadataLoading && !metadataError && !metadata && (
+              <p className="tutorial-detail__metadata-empty">
+                No metadata extracted yet. Upload a PDF above to get started.
+              </p>
+            )}
+          </div>
+        </section>
 
         <section id="section-comments" className="tutorial-detail__section tutorial-detail__comments-section">
           <CommentPanel tutorialId={tutorial.id} />

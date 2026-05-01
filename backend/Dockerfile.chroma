@@ -1,0 +1,16 @@
+# ChromaDB service for guitar tutorial search
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install chromadb
+RUN pip install --no-cache-dir chromadb
+
+# Copy the chroma service script
+COPY scripts/chroma_service.py .
+
+# Expose the ChromaDB service port
+EXPOSE 8001
+
+# Run the ChromaDB HTTP service
+ENTRYPOINT ["python3", "chroma_service.py", "--port", "8001", "--persist-dir", "/app/chroma_data"]

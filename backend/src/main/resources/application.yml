@@ -1,13 +1,36 @@
 tutorials:
   directory: ${TUTORIALS_DIR:./tutorials}
 
+upload:
+  # Max file size for video uploads (500MB)
+  max-video-size: ${MAX_VIDEO_SIZE:524288000}
+  # Max file size for PDF uploads (50MB)
+  max-pdf-size: ${MAX_PDF_SIZE:52428800}
+  # Allowed video extensions
+  video-extensions: ${VIDEO_EXTENSIONS:mp4,mkv,webm,avi,mov}
+
 subtitles:
   # Faster-Whisper model size: tiny, base, small, medium, large-v3
   model-size: ${SUBTITLE_MODEL_SIZE:base}
   # Language code for transcription
   language: ${SUBTITLE_LANGUAGE:en}
 
+ollama:
+  # Ollama server URL
+  url: ${OLLAMA_URL:http://localhost:11434}
+  # Model to use for metadata extraction
+  model: ${OLLAMA_MODEL:mistral}
+
+chroma:
+  service:
+    # ChromaDB HTTP service URL
+    url: ${CHROMA_SERVICE_URL:http://localhost:8001}
+
 spring:
+  servlet:
+    multipart:
+      max-file-size: 500MB
+      max-request-size: 500MB
   jpa:
     hibernate:
       ddl-auto: update

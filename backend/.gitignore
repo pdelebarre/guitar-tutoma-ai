@@ -36,3 +36,5 @@ build/
 
 ### jqwik ###
 .jqwik-database
+
+/tutorials/

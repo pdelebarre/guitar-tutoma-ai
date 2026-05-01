@@ -44,7 +44,7 @@ public class VideoStreamingService {
             @Value("${tutorials.directory}") String tutorialsDirectoryPath) {
         this.tutorialScannerService = tutorialScannerService;
         this.subtitleGenerationService = subtitleGenerationService;
-        this.tutorialsDirectory = Paths.get(tutorialsDirectoryPath);
+        this.tutorialsDirectory = Paths.get(tutorialsDirectoryPath).toAbsolutePath().normalize();
     }
 
     /**

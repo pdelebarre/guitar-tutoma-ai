@@ -2,6 +2,8 @@ package com.guitartutorial.service;
 
 import com.guitartutorial.dto.TutorialInfo;
 import com.guitartutorial.exception.StorageAccessException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -18,12 +20,14 @@ import java.util.Set;
 @Service
 public class TutorialScannerService {
 
+    private static final Logger log = LoggerFactory.getLogger(TutorialScannerService.class);
+
     private static final Set<String> VIDEO_EXTENSIONS = Set.of(".mp4", ".mkv", ".webm", ".avi");
 
     private final Path tutorialsDirectory;
 
     public TutorialScannerService(@Value("${tutorials.directory}") String tutorialsDirectoryPath) {
-        this.tutorialsDirectory = Paths.get(tutorialsDirectoryPath);
+        this.tutorialsDirectory = Paths.get(tutorialsDirectoryPath).toAbsolutePath().normalize();
     }
 
     /**
@@ -70,7 +74,16 @@ public class TutorialScannerService {
     }
 
     private void validateDirectoryAccessible() {
-        if (!Files.exists(tutorialsDirectory) || !Files.isDirectory(tutorialsDirectory) || !Files.isReadable(tutorialsDirectory)) {
+        // Create the tutorials directory if it doesn't exist
+        if (!Files.exists(tutorialsDirectory)) {
+            try {
+                Files.createDirectories(tutorialsDirectory);
+                log.info("Created tutorials directory: {}", tutorialsDirectory);
+            } catch (IOException e) {
+                throw new StorageAccessException("Failed to create tutorials directory: " + tutorialsDirectory, e);
+            }
+        }
+        if (!Files.isDirectory(tutorialsDirectory) || !Files.isReadable(tutorialsDirectory)) {
             throw new StorageAccessException("Tutorials directory is not accessible: " + tutorialsDirectory);
         }
     }

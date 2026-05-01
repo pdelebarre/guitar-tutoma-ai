@@ -4,6 +4,14 @@ import type {
   Annotation,
   Preference,
   Playlist,
+  TutorialMetadata,
+  SearchResponse,
+  RegisterRequest,
+  LoginRequest,
+  AuthResponse,
+  UserDto,
+  UserPreference,
+  TutorialUploadResponse,
 } from '../types';
 
 // --- Error classes ---
@@ -283,4 +291,223 @@ export async function removeTutorialFromPlaylist(
       method: 'DELETE',
     }
   );
+}
+
+// --- PDF Upload & Metadata ---
+
+/**
+ * Upload a PDF tablature file for a tutorial and trigger metadata extraction.
+ * POST /api/tutorials/{id}/pdf
+ */
+export async function uploadPdf(
+  tutorialId: string,
+  file: File
+): Promise<TutorialMetadata> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(
+    `/api/tutorials/${encodeURIComponent(tutorialId)}/pdf`,
+    {
+      method: 'POST',
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      body = { error: response.statusText };
+    }
+    if (response.status === 400) throw new ValidationError(body);
+    if (response.status >= 500) throw new ServerError(response.status, body);
+    throw new ApiError(response.status, response.statusText, body);
+  }
+
+  return response.json() as Promise<TutorialMetadata>;
+}
+
+/**
+ * Get extracted metadata for a tutorial.
+ * GET /api/tutorials/{id}/metadata
+ */
+export async function getTutorialMetadata(
+  tutorialId: string
+): Promise<TutorialMetadata> {
+  return request<TutorialMetadata>(
+    `/api/tutorials/${encodeURIComponent(tutorialId)}/metadata`
+  );
+}
+
+/**
+ * Search across all indexed tutorials using semantic search.
+ * GET /api/tutorials/search?q=query&n=10
+ */
+export async function searchTutorials(
+  query: string,
+  nResults: number = 10
+): Promise<SearchResponse> {
+  return request<SearchResponse>(
+    `/api/tutorials/search?q=${encodeURIComponent(query)}&n=${nResults}`
+  );
+}
+
+/**
+ * Check ChromaDB service health.
+ * GET /api/tutorials/search/health
+ */
+export async function getSearchHealth(): Promise<{
+  chromaService: string;
+  status: string;
+}> {
+  return request<{ chromaService: string; status: string }>(
+    '/api/tutorials/search/health'
+  );
+}
+
+// --- Auth ---
+
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    return { Authorization: `Bearer ${token}` };
+  }
+  return {};
+}
+
+export async function register(data: RegisterRequest): Promise<AuthResponse> {
+  return request<AuthResponse>('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function login(data: LoginRequest): Promise<AuthResponse> {
+  return request<AuthResponse>('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function getCurrentUser(): Promise<UserDto> {
+  return request<UserDto>('/api/auth/me', {
+    headers: getAuthHeaders(),
+  });
+}
+
+export function isAuthenticated(): boolean {
+  return localStorage.getItem('auth_token') !== null;
+}
+
+export function getAuthToken(): string | null {
+  return localStorage.getItem('auth_token');
+}
+
+export function setAuthToken(token: string): void {
+  localStorage.setItem('auth_token', token);
+}
+
+export function clearAuthToken(): void {
+  localStorage.removeItem('auth_token');
+}
+
+// --- User Preferences ---
+
+export async function getUserPreferences(): Promise<UserPreference> {
+  return request<UserPreference>('/api/user/preferences', {
+    headers: getAuthHeaders(),
+  });
+}
+
+export async function updateUserPreferences(
+  data: Partial<Omit<UserPreference, 'userId' | 'updatedAt'>>
+): Promise<UserPreference> {
+  return request<UserPreference>('/api/user/preferences', {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(),
+    },
+    body: JSON.stringify(data),
+  });
+}
+
+// --- Tutorial Upload ---
+
+/**
+ * Create a new tutorial directory.
+ * POST /api/tutorials/create
+ */
+export async function createTutorial(
+  tutorialId: string,
+  displayName?: string
+): Promise<{ tutorialId: string; displayName: string; message: string }> {
+  const params = new URLSearchParams();
+  params.append('tutorialId', tutorialId);
+  if (displayName) params.append('displayName', displayName);
+
+  const response = await fetch(
+    `/api/tutorials/create?${params.toString()}`,
+    {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+      },
+    }
+  );
+
+  if (!response.ok) {
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      body = { error: response.statusText };
+    }
+    if (response.status === 400) throw new ValidationError(body);
+    if (response.status >= 500) throw new ServerError(response.status, body);
+    throw new ApiError(response.status, response.statusText, body);
+  }
+
+  return response.json();
+}
+
+/**
+ * Upload video and/or PDF files to an existing tutorial.
+ * POST /api/tutorials/{tutorialId}/upload-files
+ */
+export async function uploadTutorialFiles(
+  tutorialId: string,
+  videoFile?: File,
+  pdfFile?: File
+): Promise<TutorialUploadResponse> {
+  const formData = new FormData();
+  if (videoFile) formData.append('video', videoFile);
+  if (pdfFile) formData.append('pdf', pdfFile);
+
+  const response = await fetch(
+    `/api/tutorials/${encodeURIComponent(tutorialId)}/upload-files`,
+    {
+      method: 'POST',
+      headers: {
+        ...getAuthHeaders(),
+      },
+      body: formData,
+    }
+  );
+
+  if (!response.ok) {
+    let body: unknown;
+    try {
+      body = await response.json();
+    } catch {
+      body = { error: response.statusText };
+    }
+    if (response.status === 400) throw new ValidationError(body);
+    if (response.status >= 500) throw new ServerError(response.status, body);
+    throw new ApiError(response.status, response.statusText, body);
+  }
+
+  return response.json();
 }
