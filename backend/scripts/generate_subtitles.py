@@ -60,7 +60,23 @@ def generate_subtitles(video_path: str, output_srt_path: str, model_size: str = 
     print(f"Transcribing: {video_path}", flush=True)
     transcribe_start = time.time()
 
-    segments, info = model.transcribe(video_path, language=language, beam_size=5)
+    try:
+        segments, info = model.transcribe(video_path, language=language, beam_size=5)
+    except IndexError as e:
+        print(
+            f"Error: Failed to decode audio from video '{video_path}': {e}. "
+            "The video may have no audio stream or use an unsupported codec.",
+            file=sys.stderr,
+            flush=True,
+        )
+        sys.exit(1)
+    except Exception as e:
+        print(
+            f"Error: Transcription failed for '{video_path}': {e}",
+            file=sys.stderr,
+            flush=True,
+        )
+        sys.exit(1)
 
     detected_language = info.language
     detected_duration = info.duration

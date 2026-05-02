@@ -16,6 +16,19 @@
   object-fit: contain;
 }
 
+/* Responsive video height for mobile */
+@media (max-width: 480px) {
+  .video-player video {
+    max-height: 280px;
+  }
+}
+
+@media (max-width: 768px) {
+  .video-player video {
+    max-height: 360px;
+  }
+}
+
 /* Subtitle generation status indicator */
 .video-player__subtitle-status {
   display: flex;
@@ -42,4 +55,9 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Subtitle generation permanently failed */
+.video-player__subtitle-status--failed {
+  color: var(--color-error, #e74c3c);
 }

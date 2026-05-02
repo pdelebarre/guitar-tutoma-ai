@@ -47,7 +47,7 @@ class AnnotationControllerTest {
 
     @Test
     void getAnnotations_shouldReturnListOfAnnotations() throws Exception {
-        AnnotationDto annotation = new AnnotationDto(1L, "tutorial-1", 1, 10.5, 20.3, 100.0, 50.0, "Note", NOW);
+        AnnotationDto annotation = new AnnotationDto(1L, "tutorial-1", 1, 10.5, 20.3, 100.0, 50.0, "Note", null, null, null, NOW);
         when(annotationService.getByTutorialId("tutorial-1")).thenReturn(List.of(annotation));
 
         mockMvc.perform(get(BASE_URL))
@@ -72,10 +72,10 @@ class AnnotationControllerTest {
 
     @Test
     void createAnnotation_shouldReturn201WithCreatedAnnotation() throws Exception {
-        AnnotationDto created = new AnnotationDto(1L, "tutorial-1", 1, 10.5, 20.3, 100.0, 50.0, "New note", NOW);
+        AnnotationDto created = new AnnotationDto(1L, "tutorial-1", 1, 10.5, 20.3, 100.0, 50.0, "New note", null, null, null, NOW);
         when(annotationService.create(eq("tutorial-1"), any(CreateAnnotationRequest.class))).thenReturn(created);
 
-        CreateAnnotationRequest request = new CreateAnnotationRequest(1, 10.5, 20.3, 100.0, 50.0, "New note");
+        CreateAnnotationRequest request = new CreateAnnotationRequest(1, 10.5, 20.3, 100.0, 50.0, "New note", null, null, null);
 
         mockMvc.perform(post(BASE_URL)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -87,10 +87,10 @@ class AnnotationControllerTest {
 
     @Test
     void updateAnnotation_shouldReturnUpdatedAnnotation() throws Exception {
-        AnnotationDto updated = new AnnotationDto(1L, "tutorial-1", 2, 55.0, 65.0, 200.0, 100.0, "Updated", NOW);
+        AnnotationDto updated = new AnnotationDto(1L, "tutorial-1", 2, 55.0, 65.0, 200.0, 100.0, "Updated", null, null, null, NOW);
         when(annotationService.update(eq(1L), any(CreateAnnotationRequest.class))).thenReturn(updated);
 
-        CreateAnnotationRequest request = new CreateAnnotationRequest(2, 55.0, 65.0, 200.0, 100.0, "Updated");
+        CreateAnnotationRequest request = new CreateAnnotationRequest(2, 55.0, 65.0, 200.0, 100.0, "Updated", null, null, null);
 
         mockMvc.perform(put(BASE_URL + "/1")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -105,7 +105,7 @@ class AnnotationControllerTest {
         when(annotationService.update(eq(99L), any(CreateAnnotationRequest.class)))
                 .thenThrow(new ResourceNotFoundException("Annotation not found"));
 
-        CreateAnnotationRequest request = new CreateAnnotationRequest(1, 0, 0, 10, 10, "text");
+        CreateAnnotationRequest request = new CreateAnnotationRequest(1, 0, 0, 10, 10, "text", null, null, null);
 
         mockMvc.perform(put(BASE_URL + "/99")
                         .contentType(MediaType.APPLICATION_JSON)

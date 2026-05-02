@@ -22,7 +22,11 @@ export class ApiError extends Error {
     public statusText: string,
     public body: unknown
   ) {
-    super(`API error ${status}: ${statusText}`);
+    const detail =
+      body && typeof body === 'object' && 'error' in (body as Record<string, unknown>)
+        ? `: ${(body as Record<string, string>).error}`
+        : '';
+    super(`API error ${status}: ${statusText}${detail}`);
     this.name = 'ApiError';
   }
 }
@@ -41,6 +45,13 @@ export class ValidationError extends ApiError {
   }
 }
 
+export class UnauthorizedError extends ApiError {
+  constructor(body: unknown) {
+    super(401, 'Unauthorized', body);
+    this.name = 'UnauthorizedError';
+  }
+}
+
 export class ServerError extends ApiError {
   constructor(status: number, body: unknown) {
     super(status, 'Server Error', body);
@@ -49,6 +60,18 @@ export class ServerError extends ApiError {
 }
 
 // --- Centralized fetch wrapper ---
+
+/**
+ * Handle 401 Unauthorized responses by clearing the stale auth token
+ * and redirecting to the auth page.
+ */
+function handleUnauthorized(): void {
+  clearAuthToken();
+  // Only redirect if not already on the auth page
+  if (!window.location.pathname.startsWith('/auth')) {
+    window.location.href = '/auth';
+  }
+}
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   const response = await fetch(url, {
@@ -67,6 +90,10 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
       body = { error: response.statusText };
     }
 
+    if (response.status === 401) {
+      handleUnauthorized();
+      throw new UnauthorizedError(body);
+    }
     if (response.status === 404) {
       throw new NotFoundError(body);
     }
@@ -465,6 +492,10 @@ export async function createTutorial(
     } catch {
       body = { error: response.statusText };
     }
+    if (response.status === 401) {
+      handleUnauthorized();
+      throw new UnauthorizedError(body);
+    }
     if (response.status === 400) throw new ValidationError(body);
     if (response.status >= 500) throw new ServerError(response.status, body);
     throw new ApiError(response.status, response.statusText, body);
@@ -503,6 +534,10 @@ export async function uploadTutorialFiles(
       body = await response.json();
     } catch {
       body = { error: response.statusText };
+    }
+    if (response.status === 401) {
+      handleUnauthorized();
+      throw new UnauthorizedError(body);
     }
     if (response.status === 400) throw new ValidationError(body);
     if (response.status >= 500) throw new ServerError(response.status, body);

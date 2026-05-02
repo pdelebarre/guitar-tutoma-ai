@@ -2,6 +2,7 @@ package com.guitartutorial.service;
 
 import com.guitartutorial.dto.TutorialInfo;
 import com.guitartutorial.exception.ResourceNotFoundException;
+import com.guitartutorial.exception.SubtitleGenerationFailedException;
 import com.guitartutorial.exception.TutorialNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,6 +113,12 @@ public class VideoStreamingService {
                         return null;
                     }
                 });
+            }
+
+            // Check if generation has permanently failed for this tutorial
+            if (subtitleGenerationService.hasGenerationFailed(tutorialId)) {
+                log.info("Subtitle generation previously failed for tutorial '{}'; not retrying", tutorialId);
+                throw new SubtitleGenerationFailedException(tutorialId);
             }
 
             // No SRT file found — trigger asynchronous generation via Faster-Whisper

@@ -1,3 +1,7 @@
+scripts:
+  # Directory containing Python scripts (generate_subtitles.py, extract_metadata.py)
+  directory: ${SCRIPTS_DIR:scripts}
+
 tutorials:
   directory: ${TUTORIALS_DIR:./tutorials}
 

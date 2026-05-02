@@ -65,6 +65,12 @@
   --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Safe Area Insets (iPhone notch) ────────────────────── */
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
 }
 
 [data-theme='dark'] {
@@ -125,6 +131,7 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: rgba(79, 70, 229, 0.15);
   transition: background-color var(--transition-normal),
     color var(--transition-normal);
 }
@@ -648,6 +655,154 @@ a:hover {
 }
 
 /* ============================================================
+   Mobile Hamburger Menu Button
+   ============================================================ */
+
+.mobile-menu-btn {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: var(--color-toggle-bg);
+  cursor: pointer;
+  padding: 8px;
+  transition: background-color var(--transition-fast),
+    transform var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.mobile-menu-btn:hover {
+  background-color: var(--color-toggle-hover);
+  transform: scale(1.08);
+}
+
+.mobile-menu-btn:active {
+  transform: scale(0.95);
+}
+
+.mobile-menu-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.mobile-menu-btn__bar {
+  display: block;
+  width: 20px;
+  height: 2px;
+  background-color: var(--color-text);
+  border-radius: 2px;
+  transition: transform var(--transition-fast),
+    opacity var(--transition-fast);
+  transform-origin: center;
+}
+
+.mobile-menu-btn--open .mobile-menu-btn__bar:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.mobile-menu-btn--open .mobile-menu-btn__bar:nth-child(2) {
+  opacity: 0;
+}
+
+.mobile-menu-btn--open .mobile-menu-btn__bar:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+/* ============================================================
+   Mobile Navigation Overlay
+   ============================================================ */
+
+.mobile-nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background-color: rgba(0, 0, 0, 0.4);
+  animation: fade-in var(--transition-fast) ease;
+}
+
+/* ============================================================
+   Mobile Navigation Drawer
+   ============================================================ */
+
+.mobile-nav {
+  display: none;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 95;
+  width: min(320px, 85vw);
+  background-color: var(--color-bg-secondary);
+  border-left: 1px solid var(--color-border);
+  box-shadow: var(--shadow-xl);
+  padding: calc(60px + var(--safe-area-top, 0px)) 1rem 2rem;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform var(--transition-normal) cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-nav--open {
+  transform: translateX(0);
+}
+
+.mobile-nav__link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--color-text);
+  text-decoration: none;
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast),
+    color var(--transition-fast);
+  min-height: 48px;
+  -webkit-tap-highlight-color: rgba(79, 70, 229, 0.15);
+}
+
+.mobile-nav__link:hover {
+  background-color: var(--color-toggle-bg);
+}
+
+.mobile-nav__link:active {
+  background-color: var(--color-accent-soft);
+}
+
+.mobile-nav__link.active {
+  color: var(--color-accent);
+  background-color: var(--color-accent-soft);
+}
+
+.mobile-nav__link:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.mobile-nav__link--action {
+  width: 100%;
+  font-family: inherit;
+  font-size: var(--text-base);
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.mobile-nav__divider {
+  height: 1px;
+  background-color: var(--color-border);
+  margin: 0.75rem 1rem;
+}
+
+/* ============================================================
    Responsive Breakpoints
    ============================================================ */
 
@@ -683,9 +838,21 @@ a:hover {
     gap: 1rem;
   }
 
-  .nav-link {
-    padding: 0.4rem 0.5rem;
-    font-size: var(--text-xs);
+  .app-nav {
+    display: none;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+  }
+
+  .mobile-nav-overlay {
+    display: block;
+  }
+
+  .mobile-nav {
+    display: flex;
+    flex-direction: column;
   }
 
   .app-main {
@@ -721,9 +888,8 @@ a:hover {
     gap: 0.5rem;
   }
 
-  .nav-link {
-    padding: 0.35rem 0.4rem;
-    font-size: 0.75rem;
+  .btn--ghost {
+    display: none;
   }
 
   .theme-toggle {
@@ -732,11 +898,35 @@ a:hover {
     font-size: 1rem;
   }
 
+  .mobile-menu-btn {
+    width: 34px;
+    height: 34px;
+  }
+
   .app-main {
     padding: 0.5rem;
   }
 
   .page {
     padding: 1rem;
+  }
+}
+
+/* ============================================================
+   iPhone Safe Area Support
+   ============================================================ */
+
+@supports (padding-top: env(safe-area-inset-top)) {
+  .app-header {
+    padding-top: var(--safe-area-top);
+  }
+
+  .app-main {
+    padding-bottom: calc(0.5rem + var(--safe-area-bottom));
+  }
+
+  .mobile-nav {
+    padding-top: calc(60px + var(--safe-area-top) + 0.5rem);
+    padding-bottom: calc(2rem + var(--safe-area-bottom));
   }
 }

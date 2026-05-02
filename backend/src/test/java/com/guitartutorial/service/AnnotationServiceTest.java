@@ -58,7 +58,7 @@ class AnnotationServiceTest {
             return a;
         });
 
-        CreateAnnotationRequest request = new CreateAnnotationRequest(1, 10.5, 20.3, 100.0, 50.0, "Practice this section slowly");
+        CreateAnnotationRequest request = new CreateAnnotationRequest(1, 10.5, 20.3, 100.0, 50.0, "Practice this section slowly", null, null, null);
         AnnotationDto result = annotationService.create("tutorial-1", request);
 
         assertThat(result.id()).isEqualTo(1L);
@@ -84,7 +84,7 @@ class AnnotationServiceTest {
             return a;
         });
 
-        CreateAnnotationRequest request = new CreateAnnotationRequest(1, 0.0, 0.0, 50.0, 50.0, null);
+        CreateAnnotationRequest request = new CreateAnnotationRequest(1, 0.0, 0.0, 50.0, 50.0, null, null, null, null);
         AnnotationDto result = annotationService.create("tutorial-1", request);
 
         assertThat(result.id()).isEqualTo(2L);
@@ -125,7 +125,7 @@ class AnnotationServiceTest {
         when(annotationRepository.findById(1L)).thenReturn(Optional.of(sampleAnnotation));
         when(annotationRepository.save(any(Annotation.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        CreateAnnotationRequest request = new CreateAnnotationRequest(3, 55.0, 65.0, 200.0, 100.0, "Updated note");
+        CreateAnnotationRequest request = new CreateAnnotationRequest(3, 55.0, 65.0, 200.0, 100.0, "Updated note", null, null, null);
         AnnotationDto result = annotationService.update(1L, request);
 
         assertThat(result.pageNumber()).isEqualTo(3);
@@ -141,7 +141,7 @@ class AnnotationServiceTest {
     void update_shouldThrowResourceNotFoundExceptionWhenAnnotationNotFound() {
         when(annotationRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> annotationService.update(99L, new CreateAnnotationRequest(1, 0, 0, 10, 10, "text")))
+        assertThatThrownBy(() -> annotationService.update(99L, new CreateAnnotationRequest(1, 0, 0, 10, 10, "text", null, null, null)))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Annotation not found");
     }
@@ -168,7 +168,7 @@ class AnnotationServiceTest {
 
     @Test
     void create_shouldThrowValidationExceptionForNegativeX() {
-        CreateAnnotationRequest request = new CreateAnnotationRequest(1, -5.0, 20.0, 100.0, 50.0, "note");
+        CreateAnnotationRequest request = new CreateAnnotationRequest(1, -5.0, 20.0, 100.0, 50.0, "note", null, null, null);
 
         assertThatThrownBy(() -> annotationService.create("tutorial-1", request))
                 .isInstanceOf(ValidationException.class)
@@ -177,7 +177,7 @@ class AnnotationServiceTest {
 
     @Test
     void create_shouldThrowValidationExceptionForNegativeY() {
-        CreateAnnotationRequest request = new CreateAnnotationRequest(1, 10.0, -3.0, 100.0, 50.0, "note");
+        CreateAnnotationRequest request = new CreateAnnotationRequest(1, 10.0, -3.0, 100.0, 50.0, "note", null, null, null);
 
         assertThatThrownBy(() -> annotationService.create("tutorial-1", request))
                 .isInstanceOf(ValidationException.class)
@@ -186,7 +186,7 @@ class AnnotationServiceTest {
 
     @Test
     void create_shouldThrowValidationExceptionForNegativeWidth() {
-        CreateAnnotationRequest request = new CreateAnnotationRequest(1, 10.0, 20.0, -100.0, 50.0, "note");
+        CreateAnnotationRequest request = new CreateAnnotationRequest(1, 10.0, 20.0, -100.0, 50.0, "note", null, null, null);
 
         assertThatThrownBy(() -> annotationService.create("tutorial-1", request))
                 .isInstanceOf(ValidationException.class)
@@ -195,7 +195,7 @@ class AnnotationServiceTest {
 
     @Test
     void create_shouldThrowValidationExceptionForNegativeHeight() {
-        CreateAnnotationRequest request = new CreateAnnotationRequest(1, 10.0, 20.0, 100.0, -50.0, "note");
+        CreateAnnotationRequest request = new CreateAnnotationRequest(1, 10.0, 20.0, 100.0, -50.0, "note", null, null, null);
 
         assertThatThrownBy(() -> annotationService.create("tutorial-1", request))
                 .isInstanceOf(ValidationException.class)
@@ -204,7 +204,7 @@ class AnnotationServiceTest {
 
     @Test
     void create_shouldThrowValidationExceptionForNegativePageNumber() {
-        CreateAnnotationRequest request = new CreateAnnotationRequest(-1, 10.0, 20.0, 100.0, 50.0, "note");
+        CreateAnnotationRequest request = new CreateAnnotationRequest(-1, 10.0, 20.0, 100.0, 50.0, "note", null, null, null);
 
         assertThatThrownBy(() -> annotationService.create("tutorial-1", request))
                 .isInstanceOf(ValidationException.class)
@@ -219,7 +219,7 @@ class AnnotationServiceTest {
             return a;
         });
 
-        CreateAnnotationRequest request = new CreateAnnotationRequest(0, 0.0, 0.0, 0.0, 0.0, "origin");
+        CreateAnnotationRequest request = new CreateAnnotationRequest(0, 0.0, 0.0, 0.0, 0.0, "origin", null, null, null);
         AnnotationDto result = annotationService.create("tutorial-1", request);
 
         assertThat(result.id()).isEqualTo(3L);
@@ -231,7 +231,7 @@ class AnnotationServiceTest {
 
     @Test
     void update_shouldThrowValidationExceptionForNegativeCoordinates() {
-        CreateAnnotationRequest request = new CreateAnnotationRequest(1, -10.0, 20.0, 100.0, 50.0, "note");
+        CreateAnnotationRequest request = new CreateAnnotationRequest(1, -10.0, 20.0, 100.0, 50.0, "note", null, null, null);
 
         assertThatThrownBy(() -> annotationService.update(1L, request))
                 .isInstanceOf(ValidationException.class)
@@ -240,7 +240,7 @@ class AnnotationServiceTest {
 
     @Test
     void update_shouldThrowValidationExceptionForNegativeDimensions() {
-        CreateAnnotationRequest request = new CreateAnnotationRequest(1, 10.0, 20.0, -5.0, 50.0, "note");
+        CreateAnnotationRequest request = new CreateAnnotationRequest(1, 10.0, 20.0, -5.0, 50.0, "note", null, null, null);
 
         assertThatThrownBy(() -> annotationService.update(1L, request))
                 .isInstanceOf(ValidationException.class)

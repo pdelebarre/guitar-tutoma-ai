@@ -153,8 +153,8 @@ public class PdfController {
 
         return ResponseEntity.ok(Map.of(
                 "query", query,
-                "results", results,
-                "totalResults", results.size()
+                "results", enrichedResults,
+                "totalResults", enrichedResults.size()
         ));
     }
 

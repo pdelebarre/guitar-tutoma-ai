@@ -33,6 +33,7 @@ class VideoStreamingServicePropertyTest {
 
     private Path tempDir;
     private TutorialScannerService scannerService;
+    private SubtitleGenerationService subtitleGenerationService;
     private VideoStreamingService streamingService;
 
     @BeforeProperty
@@ -42,10 +43,11 @@ class VideoStreamingServicePropertyTest {
         Files.createDirectories(tutorialDir);
 
         scannerService = mock(TutorialScannerService.class);
+        subtitleGenerationService = mock(SubtitleGenerationService.class);
         TutorialInfo info = new TutorialInfo(TUTORIAL_ID, "Test Tutorial", VIDEO_FILENAME, false, false);
         when(scannerService.getTutorial(TUTORIAL_ID)).thenReturn(Optional.of(info));
 
-        streamingService = new VideoStreamingService(scannerService, tempDir.toString());
+        streamingService = new VideoStreamingService(scannerService, subtitleGenerationService, tempDir.toString());
     }
 
     /**

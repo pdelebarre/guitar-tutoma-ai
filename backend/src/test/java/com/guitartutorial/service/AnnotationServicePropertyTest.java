@@ -137,7 +137,10 @@ class AnnotationServicePropertyTest {
                     20.0 + i,        // y
                     50.0,            // width
                     30.0,            // height
-                    "Deletion test annotation " + i
+                    "Deletion test annotation " + i,
+                    null,            // type
+                    null,            // strokeData
+                    null             // color
             );
             AnnotationDto created = annotationService.create(TEST_TUTORIAL_ID, request);
             createdIds.add(created.id());
@@ -189,7 +192,8 @@ class AnnotationServicePropertyTest {
                         .numeric()
                         .withChars(' ', '.', ',', '!', '?', '-')
                         .filter(s -> !s.isBlank())
-        ).as(CreateAnnotationRequest::new);
+        ).as((pageNumber, x, y, width, height, content) ->
+                new CreateAnnotationRequest(pageNumber, x, y, width, height, content, null, null, null));
 
         return singleRequest.list().ofMinSize(1).ofMaxSize(5);
     }

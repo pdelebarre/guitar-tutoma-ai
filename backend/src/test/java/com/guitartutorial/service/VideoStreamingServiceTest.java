@@ -25,12 +25,14 @@ class VideoStreamingServiceTest {
     Path tempDir;
 
     private TutorialScannerService scannerService;
+    private SubtitleGenerationService subtitleGenerationService;
     private VideoStreamingService streamingService;
 
     @BeforeEach
     void setUp() {
         scannerService = mock(TutorialScannerService.class);
-        streamingService = new VideoStreamingService(scannerService, tempDir.toString());
+        subtitleGenerationService = mock(SubtitleGenerationService.class);
+        streamingService = new VideoStreamingService(scannerService, subtitleGenerationService, tempDir.toString());
     }
 
     @Test

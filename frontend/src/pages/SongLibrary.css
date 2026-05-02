@@ -304,6 +304,14 @@
   .tutorial-card {
     padding: 0.7rem 0.75rem;
   }
+
+  .tutorial-card {
+    min-height: 44px;
+  }
+
+  .tutorial-card__top {
+    min-height: 44px;
+  }
 }
 
 /* ===== Semantic Search ===== */

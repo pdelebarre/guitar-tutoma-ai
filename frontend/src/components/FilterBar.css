@@ -138,5 +138,8 @@
   .filter-bar__pill {
     font-size: 0.7rem;
     padding: 0.3rem 0.6rem;
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
   }
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Routes, Route, NavLink, Link, useLocation } from 'react-router-dom';
 import { useTheme } from './context/ThemeContext';
 import SongLibrary from './pages/SongLibrary';
@@ -11,19 +11,40 @@ import './App.css';
 
 function App() {
   const { theme, toggleTheme } = useTheme();
-  // useLocation ensures re-render on route changes (e.g. after login redirect)
-  useLocation();
+  const location = useLocation();
   const [loggedIn, setLoggedIn] = useState(isAuthenticated());
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Keep loggedIn in sync with localStorage when route changes
-  if (loggedIn !== isAuthenticated()) {
+  useEffect(() => {
     setLoggedIn(isAuthenticated());
-  }
+  }, [location]);
 
-  function handleSignOut() {
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location]);
+
+  const handleSignOut = useCallback(() => {
     clearAuthToken();
     setLoggedIn(false);
-  }
+    setMobileMenuOpen(false);
+  }, []);
+
+  // Close mobile menu on Escape key
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setMobileMenuOpen(false);
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileMenuOpen]);
 
   return (
     <div className="app">
@@ -33,7 +54,7 @@ function App() {
             <h1 className="app-title">
               <Link to="/"><span>Guitar Tutorial Manager</span></Link>
             </h1>
-            <nav className="app-nav">
+            <nav className="app-nav" role="navigation" aria-label="Main navigation">
               <NavLink to="/" end className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}>
                 Library
               </NavLink>
@@ -65,9 +86,54 @@ function App() {
             >
               {theme === 'light' ? '🌙' : '☀️'}
             </button>
+            {/* Mobile hamburger button */}
+            <button
+              className={`mobile-menu-btn${mobileMenuOpen ? ' mobile-menu-btn--open' : ''}`}
+              onClick={() => setMobileMenuOpen(prev => !prev)}
+              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={mobileMenuOpen}
+              aria-controls="mobile-nav"
+            >
+              <span className="mobile-menu-btn__bar" />
+              <span className="mobile-menu-btn__bar" />
+              <span className="mobile-menu-btn__bar" />
+            </button>
           </div>
         </div>
       </header>
+
+      {/* Mobile navigation overlay */}
+      {mobileMenuOpen && (
+        <div className="mobile-nav-overlay" onClick={() => setMobileMenuOpen(false)} aria-hidden="true" />
+      )}
+      <nav
+        id="mobile-nav"
+        className={`mobile-nav${mobileMenuOpen ? ' mobile-nav--open' : ''}`}
+        role="navigation"
+        aria-label="Mobile navigation"
+      >
+        <NavLink to="/" end className={({ isActive }) => `mobile-nav__link${isActive ? ' active' : ''}`} onClick={() => setMobileMenuOpen(false)}>
+          📚 Library
+        </NavLink>
+        <NavLink to="/playlists" className={({ isActive }) => `mobile-nav__link${isActive ? ' active' : ''}`} onClick={() => setMobileMenuOpen(false)}>
+          📋 Playlists
+        </NavLink>
+        {loggedIn && (
+          <NavLink to="/preferences" className={({ isActive }) => `mobile-nav__link${isActive ? ' active' : ''}`} onClick={() => setMobileMenuOpen(false)}>
+            ⚙️ Preferences
+          </NavLink>
+        )}
+        <div className="mobile-nav__divider" />
+        {loggedIn ? (
+          <button className="mobile-nav__link mobile-nav__link--action" onClick={handleSignOut}>
+            🚪 Sign Out
+          </button>
+        ) : (
+          <NavLink to="/auth" className={({ isActive }) => `mobile-nav__link${isActive ? ' active' : ''}`} onClick={() => setMobileMenuOpen(false)}>
+            🔑 Sign In
+          </NavLink>
+        )}
+      </nav>
 
       <main className="app-main">
         <Routes>

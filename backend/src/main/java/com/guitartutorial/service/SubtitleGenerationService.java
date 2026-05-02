@@ -12,8 +12,10 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -34,6 +36,13 @@ public class SubtitleGenerationService {
      */
     private final ConcurrentHashMap<String, CompletableFuture<Void>> pendingGenerations = new ConcurrentHashMap<>();
 
+    /**
+     * Tracks tutorials for which subtitle generation has permanently failed.
+     * This prevents an infinite re-trigger loop where every frontend poll
+     * triggers a new failed generation attempt.
+     */
+    private final Set<String> failedGenerations = new CopyOnWriteArraySet<>();
+
     private final Path scriptsDirectory;
     private final Path tutorialsDirectory;
     private final String modelSize;
@@ -42,9 +51,9 @@ public class SubtitleGenerationService {
     public SubtitleGenerationService(
             @Value("${tutorials.directory}") String tutorialsDirectoryPath,
             @Value("${subtitles.model-size:base}") String modelSize,
-            @Value("${subtitles.language:en}") String language) {
-        // The scripts directory is relative to the working directory (project root or app dir)
-        this.scriptsDirectory = Paths.get("scripts");
+            @Value("${subtitles.language:en}") String language,
+            @Value("${scripts.directory:scripts}") String scriptsDirectoryPath) {
+        this.scriptsDirectory = Paths.get(scriptsDirectoryPath);
         this.tutorialsDirectory = Paths.get(tutorialsDirectoryPath);
         this.modelSize = modelSize;
         this.language = language;
@@ -67,17 +76,30 @@ public class SubtitleGenerationService {
     }
 
     /**
+     * Returns {@code true} if subtitle generation has permanently failed for this tutorial.
+     */
+    public boolean hasGenerationFailed(String tutorialId) {
+        return failedGenerations.contains(tutorialId);
+    }
+
+    /**
      * Ensures subtitles are generated for the given tutorial.
      * If an SRT file already exists, returns immediately.
+     * If generation has previously failed, returns a completed future (no retry).
      * Otherwise, starts an asynchronous generation task.
      *
      * @param tutorial the tutorial metadata (must contain the video filename)
-     * @return a CompletableFuture that completes when generation is done (or immediately if already present)
+     * @return a CompletableFuture that completes when generation is done (or immediately if already present/failed)
      */
     public CompletableFuture<Void> ensureSubtitles(TutorialInfo tutorial) {
         String tutorialId = tutorial.id();
 
         if (hasSubtitleFile(tutorialId)) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        // If generation has permanently failed, don't retry
+        if (hasGenerationFailed(tutorialId)) {
             return CompletableFuture.completedFuture(null);
         }
 
@@ -95,6 +117,13 @@ public class SubtitleGenerationService {
             } finally {
                 pendingGenerations.remove(tutorialId);
             }
+        });
+
+        // If generation fails, mark it as permanently failed to prevent re-trigger loops
+        future.exceptionally(ex -> {
+            log.warn("Subtitle generation permanently failed for tutorial '{}': {}", tutorialId, ex.getMessage());
+            failedGenerations.add(tutorialId);
+            return null;
         });
 
         CompletableFuture<Void> raceWinner = pendingGenerations.putIfAbsent(tutorialId, future);
@@ -173,8 +202,11 @@ public class SubtitleGenerationService {
             if (exitCode == 0) {
                 log.info("Subtitle generation completed for tutorial '{}' in {}ms", tutorialId, duration);
             } else {
-                log.warn("Subtitle generation exited with code {} for tutorial '{}' in {}ms\nOutput:\n{}",
-                        exitCode, tutorialId, duration, output);
+                String msg = String.format(
+                        "Subtitle generation exited with code %d for tutorial '%s' in %dms",
+                        exitCode, tutorialId, duration);
+                log.warn("{}\nOutput:\n{}", msg, output);
+                throw new RuntimeException(msg);
             }
         } catch (IOException e) {
             log.error("Failed to start subtitle generation for tutorial '{}': {}", tutorialId, e.getMessage());

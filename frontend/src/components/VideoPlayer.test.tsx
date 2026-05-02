@@ -24,7 +24,7 @@ describe('VideoPlayer', () => {
     );
   });
 
-  it('renders a subtitle track when hasSubtitle is true', () => {
+  it('renders a subtitle track when hasSubtitle is true (src empty until ready)', () => {
     const { container } = render(
       <VideoPlayer tutorialId="my-song" hasSubtitle={true} />
     );
@@ -32,9 +32,9 @@ describe('VideoPlayer', () => {
     const track = container.querySelector('track');
     expect(track).not.toBeNull();
     expect(track!.getAttribute('kind')).toBe('subtitles');
-    expect(track!.getAttribute('src')).toBe(
-      '/api/tutorials/my-song/subtitle'
-    );
+    // Initially subtitleReady is false, so src is empty; it gets populated
+    // after the polling useEffect confirms the subtitle endpoint is reachable.
+    expect(track!.getAttribute('src')).toBe('');
     expect(track!.getAttribute('srclang')).toBe('en');
     expect(track!.getAttribute('label')).toBe('English');
     expect(track!.hasAttribute('default')).toBe(true);

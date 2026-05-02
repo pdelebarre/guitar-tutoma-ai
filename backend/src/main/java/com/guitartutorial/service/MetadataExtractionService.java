@@ -50,11 +50,12 @@ public class MetadataExtractionService {
             TutorialMetadataRepository metadataRepository,
             ChromaServiceClient chromaServiceClient,
             @Value("${ollama.url:http://localhost:11434}") String ollamaUrl,
-            @Value("${ollama.model:mistral}") String ollamaModel) {
+            @Value("${ollama.model:mistral}") String ollamaModel,
+            @Value("${scripts.directory:scripts}") String scriptsDirectoryPath) {
         this.pdfProcessingService = pdfProcessingService;
         this.metadataRepository = metadataRepository;
         this.chromaServiceClient = chromaServiceClient;
-        this.scriptsDirectory = Paths.get("scripts");
+        this.scriptsDirectory = Paths.get(scriptsDirectoryPath);
         this.ollamaUrl = ollamaUrl;
         this.ollamaModel = ollamaModel;
         this.objectMapper = new ObjectMapper();
