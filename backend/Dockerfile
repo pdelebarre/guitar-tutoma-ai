@@ -29,7 +29,7 @@ RUN apk add --no-cache \
     linux-headers \
     python3-dev \
     && python3 -m venv /opt/venv \
-    && /opt/venv/bin/pip install --no-cache-dir faster-whisper chromadb \
+    && /opt/venv/bin/pip install --no-cache-dir faster-whisper==1.1.1 chromadb==0.6.3 \
     && rm -rf /root/.cache/pip
 
 # Copy the built JAR from the build stage
@@ -40,6 +40,15 @@ COPY scripts/ ./scripts/
 
 # Make sure the venv python is used
 ENV PATH="/opt/venv/bin:$PATH"
+
+# Create a non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Ensure the tutorials directory exists and is writable by the non-root user
+RUN mkdir -p /app/tutorials && chown -R appuser:appgroup /app
+
+# Switch to non-root user
+USER appuser
 
 EXPOSE 8080
 

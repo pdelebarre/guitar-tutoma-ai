@@ -6,6 +6,15 @@ WORKDIR /app
 # Install chromadb
 RUN pip install --no-cache-dir chromadb
 
+# Create a non-root user
+RUN addgroup -S chromagroup && adduser -S chromauser -G chromagroup
+
+# Ensure the chroma_data directory exists and is writable by the non-root user
+RUN mkdir -p /app/chroma_data && chown -R chromauser:chromagroup /app
+
+# Switch to non-root user
+USER chromauser
+
 # Copy the chroma service script
 COPY scripts/chroma_service.py .
 

@@ -23,6 +23,9 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy built files from the build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
+# Switch to non-root nginx user
+USER nginx
+
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]

@@ -130,24 +130,43 @@ public class MetadataExtractionService {
     }
 
     private void invokeMetadataScript(Path textFile, Path outputJsonFile) throws IOException {
-        Path scriptPath = scriptsDirectory.resolve("extract_metadata.py");
+        Path scriptPath = scriptsDirectory.resolve("extract_metadata.py").normalize();
         if (!Files.exists(scriptPath)) {
             log.warn("Metadata extraction script not found at: {}", scriptPath.toAbsolutePath());
             throw new IOException("Script not found: " + scriptPath);
         }
 
+        // Validate that resolved paths are within the expected directories
+        Path normalizedTextFile = textFile.toAbsolutePath().normalize();
+        Path normalizedOutputFile = outputJsonFile.toAbsolutePath().normalize();
+        Path normalizedScriptPath = scriptPath.toAbsolutePath().normalize();
+
+        // Determine the tutorials base directory from the text file's parent (tutorial directory)
+        Path tutorialsBaseDir = normalizedTextFile.getParent();
+        if (tutorialsBaseDir == null || !normalizedTextFile.startsWith(tutorialsBaseDir)) {
+            log.warn("Path traversal detected: text file {} is outside expected directory", textFile);
+            throw new IOException("Invalid text file path");
+        }
+        if (!normalizedOutputFile.startsWith(tutorialsBaseDir)) {
+            log.warn("Path traversal detected: output file {} is outside expected directory", outputJsonFile);
+            throw new IOException("Invalid output file path");
+        }
+
+        log.debug("Using paths - script: {}, text: {}, output: {}",
+                normalizedScriptPath, normalizedTextFile, normalizedOutputFile);
+
         ProcessBuilder pb = new ProcessBuilder(
                 "python3",
-                scriptPath.toAbsolutePath().toString(),
-                textFile.toAbsolutePath().toString(),
-                outputJsonFile.toAbsolutePath().toString(),
+                normalizedScriptPath.toString(),
+                normalizedTextFile.toString(),
+                normalizedOutputFile.toString(),
                 "--ollama-url", ollamaUrl,
                 "--model", ollamaModel
         );
 
         pb.redirectErrorStream(true);
 
-        log.info("Starting metadata extraction via Mistral for text file: {}", textFile);
+        log.info("Starting metadata extraction via Mistral for text file: {}", normalizedTextFile);
 
         Process process = pb.start();
 

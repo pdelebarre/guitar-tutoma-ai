@@ -2,7 +2,7 @@ package com.guitartutorial.controller;
 
 import com.guitartutorial.dto.CreateTutorialRequest;
 import com.guitartutorial.dto.TutorialUploadResponse;
-import com.guitartutorial.service.UserService;
+import com.guitartutorial.security.CurrentUserId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -10,7 +10,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -22,7 +21,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -39,14 +37,11 @@ public class TutorialUploadController {
     private static final long MAX_FILE_SIZE = 500L * 1024 * 1024; // 500MB
 
     private final Path tutorialsDirectory;
-    private final UserService userService;
 
     public TutorialUploadController(
-            @Value("${tutorials.directory}") String tutorialsDirectoryPath,
-            UserService userService) {
+            @Value("${tutorials.directory}") String tutorialsDirectoryPath) {
         // Resolve relative paths against the current working directory
         this.tutorialsDirectory = Paths.get(tutorialsDirectoryPath).toAbsolutePath().normalize();
-        this.userService = userService;
     }
 
     /**
@@ -55,13 +50,11 @@ public class TutorialUploadController {
      */
     @PostMapping("/create")
     public ResponseEntity<?> createTutorial(
-            @RequestHeader("Authorization") String authHeader,
+            @CurrentUserId Long userId,
             @RequestParam("tutorialId") String tutorialId,
             @RequestParam(value = "displayName", required = false) String displayName) {
 
-        // Require authentication
-        var userIdOpt = resolveUserId(authHeader);
-        if (userIdOpt.isEmpty()) {
+        if (userId == null) {
             return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
         }
 
@@ -75,7 +68,12 @@ public class TutorialUploadController {
                     "error", "tutorialId must contain only letters, numbers, hyphens, and underscores"));
         }
 
-        Path tutorialDir = tutorialsDirectory.resolve(tutorialId);
+        Path tutorialDir = tutorialsDirectory.resolve(tutorialId).normalize();
+        if (!tutorialDir.startsWith(tutorialsDirectory)) {
+            log.warn("Path traversal attempt detected for tutorialId: {}", tutorialId);
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid tutorialId"));
+        }
+
         if (Files.exists(tutorialDir)) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "Tutorial already exists: " + tutorialId));
@@ -83,7 +81,7 @@ public class TutorialUploadController {
 
         try {
             Files.createDirectories(tutorialDir);
-            log.info("Tutorial directory created: {} (by user {})", tutorialDir, userIdOpt.get());
+            log.info("Tutorial directory created: {} (by user {})", tutorialDir, userId);
 
             String name = (displayName != null && !displayName.isBlank()) ? displayName : tutorialId;
             return ResponseEntity.ok(Map.of(
@@ -103,13 +101,12 @@ public class TutorialUploadController {
      */
     @PostMapping(value = "/{tutorialId}/upload-files", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadTutorialFiles(
-            @RequestHeader("Authorization") String authHeader,
+            @CurrentUserId Long userId,
             @PathVariable("tutorialId") String tutorialId,
             @RequestPart(value = "video", required = false) MultipartFile videoFile,
             @RequestPart(value = "pdf", required = false) MultipartFile pdfFile) {
 
-        var userIdOpt = resolveUserId(authHeader);
-        if (userIdOpt.isEmpty()) {
+        if (userId == null) {
             return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
         }
 
@@ -117,7 +114,12 @@ public class TutorialUploadController {
             return ResponseEntity.badRequest().body(Map.of("error", "At least one file (video or PDF) must be provided"));
         }
 
-        Path tutorialDir = tutorialsDirectory.resolve(tutorialId);
+        Path tutorialDir = tutorialsDirectory.resolve(tutorialId).normalize();
+        if (!tutorialDir.startsWith(tutorialsDirectory)) {
+            log.warn("Path traversal attempt detected for tutorialId: {}", tutorialId);
+            return ResponseEntity.badRequest().body(Map.of("error", "Invalid tutorialId"));
+        }
+
         if (!Files.exists(tutorialDir) || !Files.isDirectory(tutorialDir)) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "Tutorial does not exist: " + tutorialId + ". Create it first via POST /api/tutorials/create"));
@@ -143,7 +145,11 @@ public class TutorialUploadController {
 
                 // Use original filename or generate one
                 String destName = sanitizeFilename(originalName);
-                Path destPath = tutorialDir.resolve(destName);
+                Path destPath = tutorialDir.resolve(destName).normalize();
+                if (!destPath.startsWith(tutorialDir)) {
+                    log.warn("Path traversal attempt detected in video filename: {}", originalName);
+                    return ResponseEntity.badRequest().body(Map.of("error", "Invalid filename"));
+                }
                 videoFile.transferTo(destPath.toFile());
                 videoFilename = destName;
                 videoUploaded = true;
@@ -159,7 +165,11 @@ public class TutorialUploadController {
                 }
 
                 String destName = sanitizeFilename(originalName);
-                Path destPath = tutorialDir.resolve(destName);
+                Path destPath = tutorialDir.resolve(destName).normalize();
+                if (!destPath.startsWith(tutorialDir)) {
+                    log.warn("Path traversal attempt detected in PDF filename: {}", originalName);
+                    return ResponseEntity.badRequest().body(Map.of("error", "Invalid filename"));
+                }
                 pdfFile.transferTo(destPath.toFile());
                 pdfFilename = destName;
                 pdfUploaded = true;
@@ -184,14 +194,11 @@ public class TutorialUploadController {
     }
 
     private String sanitizeFilename(String filename) {
+        // Reject filenames containing path traversal sequences
+        if (filename.contains("..")) {
+            throw new IllegalArgumentException("Filename must not contain '..'");
+        }
         // Remove path traversal characters
         return filename.replaceAll("[^a-zA-Z0-9._-]", "_");
-    }
-
-    private Optional<Long> resolveUserId(String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return Optional.empty();
-        }
-        return userService.validateToken(authHeader.substring(7));
     }
 }

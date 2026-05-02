@@ -1,3 +1,9 @@
+server:
+  error:
+    include-stacktrace: never
+    include-message: never
+    include-binding-errors: never
+
 scripts:
   # Directory containing Python scripts (generate_subtitles.py, extract_metadata.py)
   directory: ${SCRIPTS_DIR:scripts}
@@ -39,3 +45,8 @@ spring:
     hibernate:
       ddl-auto: update
     open-in-view: false
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2}
+    expiration-ms: ${JWT_EXPIRATION_MS:2592000000}

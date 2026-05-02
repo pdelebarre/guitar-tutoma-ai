@@ -3,6 +3,7 @@ package com.guitartutorial.controller;
 import com.guitartutorial.dto.AnnotationDto;
 import com.guitartutorial.dto.CreateAnnotationRequest;
 import com.guitartutorial.service.AnnotationService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -35,7 +36,7 @@ public class AnnotationController {
     @PostMapping
     public ResponseEntity<AnnotationDto> createAnnotation(
             @PathVariable String tutorialId,
-            @RequestBody CreateAnnotationRequest request) {
+            @Valid @RequestBody CreateAnnotationRequest request) {
         AnnotationDto created = annotationService.create(tutorialId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
@@ -44,7 +45,7 @@ public class AnnotationController {
     public ResponseEntity<AnnotationDto> updateAnnotation(
             @PathVariable String tutorialId,
             @PathVariable Long annotationId,
-            @RequestBody CreateAnnotationRequest request) {
+            @Valid @RequestBody CreateAnnotationRequest request) {
         AnnotationDto updated = annotationService.update(annotationId, request);
         return ResponseEntity.ok(updated);
     }

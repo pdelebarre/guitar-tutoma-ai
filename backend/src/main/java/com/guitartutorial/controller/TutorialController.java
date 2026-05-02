@@ -5,6 +5,8 @@ import com.guitartutorial.exception.ResourceNotFoundException;
 import com.guitartutorial.exception.TutorialNotFoundException;
 import com.guitartutorial.service.TutorialScannerService;
 import com.guitartutorial.service.VideoStreamingService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -25,10 +27,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/tutorials")
 public class TutorialController {
+
+    private static final Logger log = LoggerFactory.getLogger(TutorialController.class);
 
     private final TutorialScannerService tutorialScannerService;
     private final VideoStreamingService videoStreamingService;
@@ -40,7 +45,7 @@ public class TutorialController {
             @Value("${tutorials.directory}") String tutorialsDirectoryPath) {
         this.tutorialScannerService = tutorialScannerService;
         this.videoStreamingService = videoStreamingService;
-        this.tutorialsDirectory = Paths.get(tutorialsDirectoryPath);
+        this.tutorialsDirectory = Paths.get(tutorialsDirectoryPath).toAbsolutePath().normalize();
     }
 
     @GetMapping
@@ -90,6 +95,11 @@ public class TutorialController {
 
     @GetMapping("/{id}/tablature")
     public ResponseEntity<Resource> getTablature(@PathVariable String id) {
+        // Validate tutorialId to prevent path traversal
+        if (id == null || !id.matches("[a-zA-Z0-9_-]+")) {
+            return ResponseEntity.badRequest().body(null);
+        }
+
         TutorialInfo tutorial = tutorialScannerService.getTutorial(id)
                 .orElseThrow(() -> new TutorialNotFoundException(id));
 
@@ -97,7 +107,12 @@ public class TutorialController {
             throw new ResourceNotFoundException("No tablature file for this tutorial");
         }
 
-        Path tutorialDir = tutorialsDirectory.resolve(id);
+        Path tutorialDir = tutorialsDirectory.resolve(id).normalize();
+        if (!tutorialDir.startsWith(tutorialsDirectory)) {
+            log.warn("Path traversal attempt detected for tutorialId: {}", id);
+            return ResponseEntity.badRequest().body(null);
+        }
+
         try {
             Path pdfPath = Files.list(tutorialDir)
                     .filter(p -> Files.isRegularFile(p)

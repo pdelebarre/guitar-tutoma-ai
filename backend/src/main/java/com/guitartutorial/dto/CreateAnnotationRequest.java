@@ -1,13 +1,16 @@
 package com.guitartutorial.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.PositiveOrZero;
+
 public record CreateAnnotationRequest(
-    int pageNumber,
+    @PositiveOrZero int pageNumber,
     double x,
     double y,
-    double width,
-    double height,
-    String content,
-    String type,
+    @PositiveOrZero double width,
+    @PositiveOrZero double height,
+    @NotBlank String content,
+    @NotBlank String type,
     String strokeData,
     String color
 ) {}

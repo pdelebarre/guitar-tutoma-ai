@@ -140,8 +140,19 @@ public class SubtitleGenerationService {
      */
     private void generateSubtitlesSync(TutorialInfo tutorial) throws RuntimeException {
         String tutorialId = tutorial.id();
-        Path tutorialDir = tutorialsDirectory.resolve(tutorialId);
-        Path videoPath = tutorialDir.resolve(tutorial.videoFilename());
+
+        // Resolve and normalize paths to prevent path traversal
+        Path tutorialDir = tutorialsDirectory.resolve(tutorialId).normalize();
+        if (!tutorialDir.startsWith(tutorialsDirectory)) {
+            log.warn("Path traversal attempt detected for tutorialId: {}", tutorialId);
+            return;
+        }
+
+        Path videoPath = tutorialDir.resolve(tutorial.videoFilename()).normalize();
+        if (!videoPath.startsWith(tutorialDir)) {
+            log.warn("Path traversal attempt detected in video filename: {}", tutorial.videoFilename());
+            return;
+        }
 
         if (!Files.exists(videoPath)) {
             log.warn("Video file not found for tutorial '{}': {}", tutorialId, videoPath);
@@ -151,13 +162,20 @@ public class SubtitleGenerationService {
         // Determine output SRT path (same name as video but with .srt extension)
         String videoName = tutorial.videoFilename();
         String srtName = videoName.replaceAll("\\.[^.]+$", ".srt");
-        Path srtPath = tutorialDir.resolve(srtName);
+        Path srtPath = tutorialDir.resolve(srtName).normalize();
+        if (!srtPath.startsWith(tutorialDir)) {
+            log.warn("Path traversal attempt detected in SRT filename: {}", srtName);
+            return;
+        }
 
-        Path scriptPath = scriptsDirectory.resolve("generate_subtitles.py");
+        Path scriptPath = scriptsDirectory.resolve("generate_subtitles.py").normalize();
         if (!Files.exists(scriptPath)) {
             log.warn("Subtitle generation script not found at: {}", scriptPath.toAbsolutePath());
             return;
         }
+
+        log.debug("Using paths - script: {}, video: {}, srt: {}",
+                scriptPath.toAbsolutePath(), videoPath, srtPath);
 
         ProcessBuilder pb = new ProcessBuilder(
                 "python3",

@@ -2,5 +2,6 @@ spring:
   datasource:
     url: jdbc:postgresql://${DB_HOST:db}:${DB_PORT:5432}/${DB_NAME:guitardb}
     username: ${DB_USER:guitar}
-    password: ${DB_PASSWORD:guitar}
+    # WARNING: DB_PASSWORD MUST be set via environment variable in production!
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver

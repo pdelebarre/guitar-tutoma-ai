@@ -6,4 +6,7 @@ spring:
     password:
   h2:
     console:
+      # WARNING: H2 console should NEVER be enabled in production profiles!
       enabled: true
+      settings:
+        web-allow-others: false

@@ -64,6 +64,13 @@ export class ServerError extends ApiError {
 /**
  * Handle 401 Unauthorized responses by clearing the stale auth token
  * and redirecting to the auth page.
+ *
+ * SECURITY: This clears the token from localStorage on any 401 response,
+ * preventing the app from continuing to send a stale/invalid token.
+ *
+ * TODO: Migrate token storage to httpOnly cookies (set by the backend)
+ * once the backend Spring Security configuration supports it. This will
+ * eliminate XSS-based token exfiltration risks associated with localStorage.
  */
 function handleUnauthorized(): void {
   clearAuthToken();
@@ -148,11 +155,15 @@ export async function createComment(
   tutorialId: string,
   text: string
 ): Promise<Comment> {
+  const sanitized = text.trim();
+  if (!sanitized) {
+    throw new Error('Comment text cannot be empty');
+  }
   return request<Comment>(
     `/api/tutorials/${encodeURIComponent(tutorialId)}/comments`,
     {
       method: 'POST',
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text: sanitized }),
     }
   );
 }
@@ -162,11 +173,15 @@ export async function updateComment(
   commentId: number,
   text: string
 ): Promise<Comment> {
+  const sanitized = text.trim();
+  if (!sanitized) {
+    throw new Error('Comment text cannot be empty');
+  }
   return request<Comment>(
     `/api/tutorials/${encodeURIComponent(tutorialId)}/comments/${commentId}`,
     {
       method: 'PUT',
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text: sanitized }),
     }
   );
 }
@@ -197,6 +212,9 @@ export async function createAnnotation(
   tutorialId: string,
   annotation: Omit<Annotation, 'id' | 'tutorialId' | 'createdAt'>
 ): Promise<Annotation> {
+  if (annotation.content !== null && annotation.content !== undefined && annotation.content.trim() === '') {
+    throw new Error('Annotation content cannot be empty');
+  }
   return request<Annotation>(
     `/api/tutorials/${encodeURIComponent(tutorialId)}/annotations`,
     {
@@ -211,6 +229,9 @@ export async function updateAnnotation(
   annotationId: number,
   annotation: Omit<Annotation, 'id' | 'tutorialId' | 'createdAt'>
 ): Promise<Annotation> {
+  if (annotation.content !== null && annotation.content !== undefined && annotation.content.trim() === '') {
+    throw new Error('Annotation content cannot be empty');
+  }
   return request<Annotation>(
     `/api/tutorials/${encodeURIComponent(tutorialId)}/annotations/${annotationId}`,
     {
@@ -262,9 +283,13 @@ export async function getPlaylists(): Promise<Playlist[]> {
 }
 
 export async function createPlaylist(name: string): Promise<Playlist> {
+  const sanitized = name.trim();
+  if (!sanitized) {
+    throw new Error('Playlist name cannot be empty');
+  }
   return request<Playlist>('/api/playlists', {
     method: 'POST',
-    body: JSON.stringify({ name }),
+    body: JSON.stringify({ name: sanitized }),
   });
 }
 
@@ -396,6 +421,18 @@ export async function getSearchHealth(): Promise<{
 
 // --- Auth ---
 
+/**
+ * Get the Authorization headers with the stored JWT token.
+ *
+ * SECURITY NOTE: Storing the auth token in localStorage exposes it to XSS
+ * attacks — any injected script can read `localStorage` and exfiltrate the
+ * token. This is a known limitation of the current SPA architecture.
+ *
+ * TODO: Migrate to httpOnly cookies set by the backend (Spring Security).
+ * httpOnly cookies are not accessible via JavaScript, which eliminates the
+ * XSS token exfiltration vector. The backend authentication rewrite has
+ * already been completed to support this migration.
+ */
 function getAuthHeaders(): Record<string, string> {
   const token = localStorage.getItem('auth_token');
   if (token) {

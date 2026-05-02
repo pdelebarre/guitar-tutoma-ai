@@ -41,6 +41,13 @@ export default function TablatureViewer({
   const [activeColor, setActiveColor] = useState('#FFD700');
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentStroke, setCurrentStroke] = useState<StrokePoint[]>([]);
+  const [textInput, setTextInput] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    pageNumber: number;
+  }>({ visible: false, x: 0, y: 0, pageNumber: 0 });
+  const textInputRef = useRef<HTMLInputElement>(null);
   const overlayRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const drawingPageRef = useRef<number | null>(null);
 
@@ -153,7 +160,7 @@ export default function TablatureViewer({
 
   // ── Text annotation handler ────────────────────────────────
 
-  async function handleOverlayClick(
+  function handleOverlayClick(
     e: React.MouseEvent<HTMLDivElement>,
     pageNumber: number
   ) {
@@ -170,8 +177,23 @@ export default function TablatureViewer({
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
 
-    const content = prompt('Enter annotation text:');
-    if (!content || !content.trim()) return;
+    // Show controlled text input instead of window.prompt()
+    setTextInput({ visible: true, x, y, pageNumber });
+    // Focus the input on next render
+    setTimeout(() => textInputRef.current?.focus(), 0);
+  }
+
+  async function handleTextInputSubmit() {
+    const inputEl = textInputRef.current;
+    if (!inputEl) return;
+
+    const content = inputEl.value.trim();
+    if (!content) {
+      setTextInput({ visible: false, x: 0, y: 0, pageNumber: 0 });
+      return;
+    }
+
+    const { x, y, pageNumber } = textInput;
 
     try {
       const newAnnotation = await createAnnotation(tutorialId, {
@@ -180,7 +202,7 @@ export default function TablatureViewer({
         y,
         width: 15,
         height: 5,
-        content: content.trim(),
+        content,
         type: 'text',
         strokeData: null,
         color: null,
@@ -188,6 +210,18 @@ export default function TablatureViewer({
       setAnnotations((prev) => [...prev, newAnnotation]);
     } catch {
       // Silently fail; user can retry
+    }
+
+    setTextInput({ visible: false, x: 0, y: 0, pageNumber: 0 });
+  }
+
+  function handleTextInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleTextInputSubmit();
+    }
+    if (e.key === 'Escape') {
+      setTextInput({ visible: false, x: 0, y: 0, pageNumber: 0 });
     }
   }
 
@@ -619,6 +653,27 @@ export default function TablatureViewer({
                             );
                           })}
                         </svg>
+                      </div>
+                    )}
+
+                    {/* Render text input overlay for new annotations */}
+                    {textInput.visible && textInput.pageNumber === pageNumber && (
+                      <div
+                        className="tablature-viewer__text-input-overlay"
+                        style={{
+                          left: `${textInput.x}%`,
+                          top: `${textInput.y}%`,
+                        }}
+                      >
+                        <input
+                          ref={textInputRef}
+                          className="tablature-viewer__text-input"
+                          type="text"
+                          placeholder="Enter annotation text..."
+                          onKeyDown={handleTextInputKeyDown}
+                          onBlur={handleTextInputSubmit}
+                          aria-label="New annotation text"
+                        />
                       </div>
                     )}
 

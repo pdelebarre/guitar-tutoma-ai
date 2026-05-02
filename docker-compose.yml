@@ -11,7 +11,8 @@ services:
       - DB_HOST=db
       - DB_NAME=${DB_NAME:-guitardb}
       - DB_USER=${DB_USER:-guitar}
-      - DB_PASSWORD=${DB_PASSWORD:-guitar}
+      # WARNING: DB_PASSWORD MUST be overridden in production!
+      - DB_PASSWORD=${DB_PASSWORD}
       - OLLAMA_URL=http://ollama:11434
       - OLLAMA_MODEL=${OLLAMA_MODEL:-mistral}
       - CHROMA_SERVICE_URL=http://chroma:8001
@@ -34,12 +35,13 @@ services:
     environment:
       - POSTGRES_DB=${DB_NAME:-guitardb}
       - POSTGRES_USER=${DB_USER:-guitar}
-      - POSTGRES_PASSWORD=${DB_PASSWORD:-guitar}
+      # WARNING: POSTGRES_PASSWORD MUST be overridden in production!
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
 
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.5.7
     ports:
       - "${OLLAMA_PORT:-11434}:11434"
     volumes:
